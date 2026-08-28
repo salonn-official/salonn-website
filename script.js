@@ -59,6 +59,25 @@ function countUp(el, target, { prefix = "", suffix = "", decimals = 0 } = {}) {
     console.warn("[salonn] settings load failed, using fallback link:", e);
   }
 
+  // Social links from Supabase -> footer icons
+  try {
+    const socials = await sbGet("social_links?select=platform,url,enabled&order=display_order");
+    socials.forEach((s) => {
+      const el = document.querySelector(`[data-social="${s.platform}"]`);
+      if (!el) return;
+      if (s.enabled && s.url) {
+        el.setAttribute("href", s.url);
+        el.setAttribute("target", "_blank");
+        el.setAttribute("rel", "noopener");
+      } else if (!s.enabled) {
+        el.style.display = "none";
+      }
+      // if enabled but no url yet, it stays as a muted placeholder (href="#")
+    });
+  } catch (e) {
+    console.warn("[salonn] social links load failed:", e);
+  }
+
   // Stats from Supabase -> animated hero numbers
   try {
     const stats = await sbGet(

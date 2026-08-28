@@ -220,6 +220,18 @@ mark {
 .footer__links a:hover { color: var(--yellow-deep); }
 .footer__copy { color: var(--muted); font-size: 13px; margin-top: 6px; }
 
+.socials { display: flex; gap: 12px; margin-top: 4px; }
+.social {
+  width: 42px; height: 42px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--white); color: var(--ink);
+  border: 1px solid var(--line); box-shadow: var(--card-shadow);
+  transition: transform .15s ease, background .15s ease, color .15s ease;
+}
+.social:hover { transform: translateY(-3px); background: var(--ink); color: var(--yellow); }
+/* Icons with no link yet stay muted and non-interactive */
+.social[href="#"] { opacity: .38; pointer-events: none; }
+
 /* ===================== RESPONSIVE ===================== */
 
 /* Tablet / small laptop */

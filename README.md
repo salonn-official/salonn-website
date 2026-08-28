@@ -26,6 +26,7 @@ Everything is editable from the Supabase dashboard → **Table editor**:
 | `stats` | The animated hero numbers. Edit `value`, `label`, `prefix`, `suffix`, `decimals`, `display_order`. |
 | `app_settings` | Row `play_store_url` → the link every "Get the App" button opens. |
 | `privacy_policy` | The `content` (HTML) shown on `privacy.html`. |
+| `social_links` | Footer social icons. Paste the `url` for `facebook` / `instagram` / `x` / `youtube`; empty ones show as muted, non-clickable placeholders. Set `enabled=false` to hide one entirely. |
 
 Read access is public (RLS "select" policy + grant); **writes are blocked** for the
 anon key, so only you (via the dashboard) can change these values. If Supabase is ever
