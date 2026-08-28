@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>salonn — Book Appointments at Nearby Salons</title>
+  <meta name="description" content="salonn lets you discover nearby salons, book appointments with ease, and grab exclusive offers. Download the app and skip the queue." />
+
+  <!-- Open Graph / social preview -->
+  <meta property="og:title" content="salonn — Book Appointments at Nearby Salons" />
+  <meta property="og:description" content="Discover nearby salons, book with ease, and unlock exclusive offers." />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#F5C518" />
+
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ===================== NAV ===================== -->
+  <header class="nav" id="top">
+    <div class="container nav__inner">
+      <a class="brand" href="#top" aria-label="salonn home">
+        <span class="brand__logo" aria-hidden="true">S</span>
+        <span class="brand__name">salonn</span>
+      </a>
+      <nav class="nav__links" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#categories">Services</a>
+      </nav>
+      <a class="btn btn--dark nav__cta" href="#download" data-store-link>
+        <span>Get the App</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- ===================== HERO ===================== -->
+  <section class="hero">
+    <div class="container hero__inner">
+      <div class="hero__copy">
+        <span class="pill">★ Now live in your city</span>
+        <h1 class="hero__title">
+          Book Appointment<br />
+          <mark>near by</mark> Salon
+        </h1>
+        <p class="hero__sub">
+          Discover the best salons around you, check ratings &amp; prices, and
+          book your slot in seconds — no calls, no waiting in line.
+        </p>
+
+        <div class="hero__actions">
+          <a class="btn btn--play" href="#download" data-store-link>
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M3.6 2.3 13 12 3.6 21.7c-.4-.2-.6-.6-.6-1.1V3.4c0-.5.2-.9.6-1.1Zm11 8.3 2.7-2.7 3.8 2.2c.9.5.9 1.8 0 2.3l-3.8 2.2-2.7-2.7 0 0Zm-1.1 1.4L5.2 20.4l9.4-5.4-1.1-1ZM5.2 3.6l8.3 8.3 1.1-1L5.2 3.6Z"/></svg>
+            <span>
+              <small>GET IT ON</small>
+              Google Play
+            </span>
+          </a>
+          <a class="btn btn--ghost" href="#features">See how it works</a>
+        </div>
+
+        <ul class="hero__stats" id="heroStats">
+          <li><strong>50+</strong><span>Salons listed</span></li>
+          <li><strong>1,200+</strong><span>Total bookings</span></li>
+          <li><strong>2 min</strong><span>Time to book</span></li>
+        </ul>
+      </div>
+
+      <!-- Phone mockup: real app screenshot -->
+      <div class="hero__phone">
+        <div class="phone">
+          <div class="phone__screen">
+            <img class="phone__shot" src="assets/app-home.png"
+                 alt="salonn app home screen showing nearby salons" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FEATURES ===================== -->
+  <section class="section features" id="features">
+    <div class="container">
+      <h2 class="section__title">Everything you need to look good</h2>
+      <p class="section__lead">salonn brings your neighbourhood salons into one simple app.</p>
+
+      <div class="grid grid--3">
+        <article class="feature">
+          <div class="feature__icon">📍</div>
+          <h3>Discover Nearby Salons</h3>
+          <p>Find top-rated salons and barbers around you, sorted by distance, rating and price.</p>
+        </article>
+        <article class="feature">
+          <div class="feature__icon">📅</div>
+          <h3>Book with Ease</h3>
+          <p>Pick a service, choose your slot, and confirm — your appointment is booked in under two minutes.</p>
+        </article>
+        <article class="feature">
+          <div class="feature__icon">🏷️</div>
+          <h3>Exclusive Offers</h3>
+          <p>Unlock deals and member-only discounts you won't find walking in off the street.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== HOW IT WORKS ===================== -->
+  <section class="section how" id="how">
+    <div class="container">
+      <h2 class="section__title">Booked in 3 simple steps</h2>
+      <div class="grid grid--3 steps">
+        <div class="step">
+          <span class="step__num">1</span>
+          <h3>Explore salons</h3>
+          <p>Browse salons near you and check reviews, services and pricing.</p>
+        </div>
+        <div class="step">
+          <span class="step__num">2</span>
+          <h3>Pick a slot</h3>
+          <p>Choose the service you want and a time that suits your day.</p>
+        </div>
+        <div class="step">
+          <span class="step__num">3</span>
+          <h3>Show up &amp; relax</h3>
+          <p>Skip the queue — your seat is reserved and ready for you.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== CATEGORIES ===================== -->
+  <section class="section categories" id="categories">
+    <div class="container">
+      <h2 class="section__title">Services for everyone</h2>
+      <p class="section__lead">From a quick trim to a full spa day.</p>
+      <div class="chips">
+        <span>✂️ Haircut</span>
+        <span>🎨 Color</span>
+        <span>🧔 Beard</span>
+        <span>💆 Spa</span>
+        <span>💅 Nails</span>
+        <span>🧖 Facial</span>
+        <span>💇 Styling</span>
+        <span>🪮 Grooming</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== DOWNLOAD CTA ===================== -->
+  <section class="section cta" id="download">
+    <div class="container cta__inner">
+      <div class="cta__logo" aria-hidden="true">S</div>
+      <h2>Ready to book your next appointment?</h2>
+      <p>Download salonn and discover the best salons near you.</p>
+      <a class="btn btn--play btn--lg" href="#" data-store-link>
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M3.6 2.3 13 12 3.6 21.7c-.4-.2-.6-.6-.6-1.1V3.4c0-.5.2-.9.6-1.1Zm11 8.3 2.7-2.7 3.8 2.2c.9.5.9 1.8 0 2.3l-3.8 2.2-2.7-2.7Zm-1.1 1.4L5.2 20.4l9.4-5.4-1.1-1ZM5.2 3.6l8.3 8.3 1.1-1L5.2 3.6Z"/></svg>
+        <span><small>GET IT ON</small>Google Play</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <a class="brand" href="#top">
+        <span class="brand__logo" aria-hidden="true">S</span>
+        <span class="brand__name">salonn</span>
+      </a>
+      <p class="footer__tag">Book Appointment near by Salon</p>
+      <nav class="footer__links" aria-label="Footer">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#categories">Services</a>
+        <a href="#download" data-store-link>Download</a>
+        <a href="privacy.html">Privacy Policy</a>
+      </nav>
+      <p class="footer__copy">© <span id="year"></span> salonn. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="supabase.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

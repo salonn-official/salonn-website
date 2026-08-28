@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — salonn</title>
+  <meta name="description" content="salonn privacy policy." />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header class="nav">
+    <div class="container nav__inner">
+      <a class="brand" href="index.html" aria-label="salonn home">
+        <span class="brand__logo" aria-hidden="true">S</span>
+        <span class="brand__name">salonn</span>
+      </a>
+      <a class="btn btn--dark nav__cta" href="index.html">← Back to home</a>
+    </div>
+  </header>
+
+  <main class="legal container">
+    <h1 id="legalTitle">Privacy Policy</h1>
+    <div id="legalBody" class="legal__body">
+      <p class="legal__loading">Loading…</p>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <a class="brand" href="index.html">
+        <span class="brand__logo" aria-hidden="true">S</span>
+        <span class="brand__name">salonn</span>
+      </a>
+      <p class="footer__copy">© <span id="year"></span> salonn. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="supabase.js"></script>
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+    (async function () {
+      const body = document.getElementById("legalBody");
+      try {
+        const rows = await sbGet(
+          "privacy_policy?select=title,content,updated_at&order=updated_at.desc&limit=1"
+        );
+        if (rows && rows.length) {
+          document.getElementById("legalTitle").textContent = rows[0].title || "Privacy Policy";
+          document.title = (rows[0].title || "Privacy Policy") + " — salonn";
+          body.innerHTML = rows[0].content || "<p>No policy has been published yet.</p>";
+        } else {
+          body.innerHTML = "<p>No policy has been published yet.</p>";
+        }
+      } catch (e) {
+        body.innerHTML =
+          "<p>Sorry, the privacy policy could not be loaded right now. Please try again later.</p>";
+        console.warn("[salonn] privacy load failed:", e);
+      }
+    })();
+  </script>
+</body>
+</html>
