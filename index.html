@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>Salonn — Book salons near you</title>
+  <meta name="description" content="Discover and book top-rated salons and barbershops near you." />
+  <meta name="theme-color" content="#0e0e0e" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23FFD700'/><text x='50' y='72' font-size='64' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%23141414'>S</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+
+    <!-- ─────────── HOME ─────────── -->
+    <section class="screen" id="screen-home">
+      <header class="app-head">
+        <button class="loc" id="locBtn">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>
+          <span><small>Your location</small><b id="locLabel">Enable location</b></span>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+        </button>
+        <button class="bell" id="getAppTop" title="Get the app">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17 4H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm-5 15a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm5-4H7V6h10Z"/></svg>
+        </button>
+      </header>
+
+      <div class="scroll">
+        <div class="search">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M10 4a6 6 0 1 0 3.9 10.6l4.7 4.7 1.4-1.4-4.7-4.7A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"/></svg>
+          <input id="searchInput" placeholder="Search salons, areas…" />
+        </div>
+
+        <div class="chips" id="cats"></div>
+
+        <div id="featured"></div>
+
+        <div class="sec-head"><h2>Salons near you</h2><span class="muted" id="count"></span></div>
+        <div class="list" id="salonList">
+          <div class="empty">Finding salons around you…</div>
+        </div>
+        <div class="pad"></div>
+      </div>
+    </section>
+
+    <!-- ─────────── EXPLORE ─────────── -->
+    <section class="screen" id="screen-explore" hidden>
+      <header class="app-head simple"><h1>Explore</h1></header>
+      <div class="scroll">
+        <div class="reel-grid" id="reelGrid"><div class="empty">Loading reels…</div></div>
+        <div class="pad"></div>
+      </div>
+    </section>
+
+    <!-- ─────────── BOOKINGS ─────────── -->
+    <section class="screen" id="screen-bookings" hidden>
+      <header class="app-head simple"><h1>Bookings</h1></header>
+      <div class="scroll" id="bookingsBody"></div>
+    </section>
+
+    <!-- ─────────── PROFILE ─────────── -->
+    <section class="screen" id="screen-profile" hidden>
+      <header class="app-head simple"><h1>Profile</h1></header>
+      <div class="scroll" id="profileBody"></div>
+    </section>
+
+    <!-- ─────────── SALON DETAIL (overlay) ─────────── -->
+    <section class="screen detail" id="screen-detail" hidden>
+      <div class="scroll" id="detailBody"></div>
+      <div class="detail-bar">
+        <div><small class="muted">Total</small><b id="detailPrice">₹0</b></div>
+        <button class="btn gold" id="detailBook">Book appointment</button>
+      </div>
+    </section>
+
+    <!-- ─────────── TABS (bottom on mobile, top nav on desktop) ─────────── -->
+    <nav class="tabbar">
+      <a class="tb-brand" href="#"><span class="brand-mark small">S</span><b>Salonn</b></a>
+      <button class="tab active" data-tab="home">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 3 10v11h6v-6h6v6h6V10z"/></svg><span>Home</span>
+      </button>
+      <button class="tab" data-tab="explore">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm3.5 6.5-2 4.5-4.5 2 2-4.5z"/></svg><span>Explore</span>
+      </button>
+      <button class="tab" data-tab="bookings">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2Zm12 8v10H5V10z"/></svg><span>Bookings</span>
+      </button>
+      <button class="tab" data-tab="profile">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-5 0-9 2.5-9 6v2h18v-2c0-3.5-4-6-9-6Z"/></svg><span>Profile</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Reel / post viewer -->
+  <div id="reelViewer" class="reelview" hidden>
+    <button class="rv-close" id="rvClose">✕</button>
+    <div class="rv-stage" id="rvStage"></div>
+    <div class="rv-dots" id="rvDots"></div>
+    <div class="rv-info" id="rvInfo"></div>
+  </div>
+
+  <!-- Auth modal -->
+  <div id="authModal" class="modal" hidden>
+    <div class="sheet">
+      <button class="sheet-close" data-close-auth>✕</button>
+      <div class="brand-mark big">S</div>
+      <h3 id="authTitle">Welcome back</h3>
+      <p class="muted" id="authSub">Log in to book your appointment.</p>
+      <form id="authForm">
+        <input type="text" id="authName" placeholder="Full name" autocomplete="name" hidden />
+        <input type="email" id="authEmail" placeholder="Email" autocomplete="email" required />
+        <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password" required minlength="6" />
+        <div id="authError" class="auth-error" hidden></div>
+        <button type="submit" class="btn gold block" id="authSubmit">Log in</button>
+      </form>
+      <button class="btn ghost block" id="googleBtn">Continue with Google</button>
+      <p class="auth-switch"><span id="authSwitchText">New to Salonn?</span>
+        <button type="button" id="authSwitch" class="link">Create an account</button></p>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>
