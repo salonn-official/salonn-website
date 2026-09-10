@@ -210,21 +210,25 @@ async function openSalon(s) {
   const area = esc([s.area, s.city].filter(Boolean).join(", ") || "Nearby");
   const dist = s.dist != null ? ` · ${s.dist.toFixed(1)} km away` : "";
   $("detailBody").innerHTML = `
+    <div class="d-head">
+      <button class="d-hback" onclick="closeDetail()" aria-label="Back">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M15.5 4.5 8 12l7.5 7.5 1.4-1.4L10.8 12l6.1-6.1z"/></svg>
+      </button>
+      <span class="brand-mark small">S</span><b class="d-hbrand">Salonn</b>
+    </div>
     <div class="d-hero">
-      <button class="d-back" onclick="closeDetail()">✕</button>
       <img id="dHeroImg" src="${esc(s.image_url || "")}" onerror="this.style.background='#1f1f1f'">
       <div class="d-dots" id="dDots"></div>
     </div>
     <div class="d-body">
       <div class="d-title">${esc(s.name || "Salon")}</div>
       <div class="d-row">★ <b style="color:var(--gold)">${s.rating || 0}</b> · ${area}${dist}</div>
-      ${s.address ? `<div class="d-row">📍 ${esc(s.address)}</div>` : ""}
       <div class="sec-head" style="margin-top:20px"><h2>Choose services</h2></div>
       <div id="svcList"><div class="empty">Loading services…</div></div>
       <div id="detailReels"></div>
       <div id="revSection"></div>
     </div>
-    <div class="d-note">🔒 Booking, secure payment, refund tracking &amp; rescheduling happen in the <b>Salonn app</b> for your security and live updates.</div>`;
+    <div class="d-note">↩️ Track your <b>refund status</b> and see <b>reschedules</b> live in the <b>Salonn app</b>.</div>`;
   $("detailPrice").textContent = "₹0";
   $("detailBook").onclick = () => bookNow(s);
   loadGallery(s.id);
@@ -265,16 +269,18 @@ async function loadReviews(id) {
   const el = $("revSection");
   if (!el) return;
   const rows = data || [];
-  if (!rows.length) { el.innerHTML = ""; return; }
-  const avg = (rows.reduce((a, r) => a + (r.rating || 0), 0) / rows.length).toFixed(1);
   const stars = (n) => "★★★★★☆☆☆☆☆".slice(5 - Math.round(n), 10 - Math.round(n));
+  const avg = rows.length ? (rows.reduce((a, r) => a + (r.rating || 0), 0) / rows.length).toFixed(1) : "0.0";
   el.innerHTML = `
-    <div class="sec-head" style="margin-top:26px"><h2>Ratings &amp; reviews</h2></div>
-    <div class="rev-sum">
+    <div class="sec-head" style="margin-top:26px">
+      <h2>Ratings &amp; reviews</h2>
+      <button class="write-btn" id="writeRevBtn"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M3 17.2V21h3.8L17.8 10 14 6.2 3 17.2ZM20.7 7.1c.4-.4.4-1 0-1.4l-2.4-2.4a1 1 0 0 0-1.4 0l-1.9 1.9L18.8 9l1.9-1.9Z"/></svg> Write</button>
+    </div>
+    ${rows.length ? `<div class="rev-sum">
       <div class="rev-avg">${avg}<small>${rows.length} review${rows.length > 1 ? "s" : ""}</small></div>
       <div><div class="rev-stars">${stars(avg)}</div>
       <div class="muted" style="font-size:13px;margin-top:4px">Based on customer visits</div></div>
-    </div>
+    </div>` : `<div class="muted" style="font-size:13.5px;padding-bottom:2px">No reviews yet — be the first to review this salon.</div>`}
     ${rows.map((r) => {
       const nm = r.reviewer_name || "Customer";
       const media = (r.media_urls || []).filter(Boolean);
@@ -286,8 +292,47 @@ async function loadReviews(id) {
         ${media.length ? `<div class="rev-media">${media.map((m) => isVideoUrl(m) ? "" : `<img src="${esc(m)}" loading="lazy">`).join("")}</div>` : ""}
       </div>`;
     }).join("")}`;
+  const w = $("writeRevBtn");
+  if (w) w.onclick = () => openReviewForm(id);
 }
 function isVideoUrl(u) { return /\.(mp4|mov|webm|m4v)(\?|$)/i.test(u || ""); }
+
+/* ── Sheet modal (booking + review forms) ── */
+function openSheet(html) { $("sheetBody").innerHTML = html; $("sheetModal").hidden = false; }
+window.closeSheet = () => { $("sheetModal").hidden = true; $("sheetBody").innerHTML = ""; };
+$("sheetModal").addEventListener("click", (e) => { if (e.target.id === "sheetModal") closeSheet(); });
+
+/* ── Write a review ── */
+function openReviewForm(salonId) {
+  if (!session) { openAuth("login"); return; }
+  let rating = 5;
+  openSheet(`
+    <button class="sheet-close" onclick="closeSheet()">✕</button>
+    <h3>Write a review</h3>
+    <p class="muted">Share your experience at this salon.</p>
+    <div class="star-input" id="starIn">${[1, 2, 3, 4, 5].map((i) => `<span data-v="${i}">★</span>`).join("")}</div>
+    <textarea id="revComment" class="rev-textarea" placeholder="How was your visit? (optional)"></textarea>
+    <div id="revErr" class="auth-error" hidden></div>
+    <button class="btn gold block" id="revSubmit">Submit review</button>`);
+  const setStars = (v) => { rating = v; document.querySelectorAll("#starIn span").forEach((s, i) => s.classList.toggle("on", i < v)); };
+  document.querySelectorAll("#starIn span").forEach((s) => (s.onclick = () => setStars(+s.dataset.v)));
+  setStars(5);
+  $("revSubmit").onclick = async () => {
+    $("revSubmit").disabled = true; $("revSubmit").textContent = "Submitting…";
+    try {
+      const name = session.user.user_metadata?.full_name || session.user.email.split("@")[0];
+      const { error } = await sb.from("reviews").insert({
+        salon_id: salonId, customer_id: session.user.id, rating,
+        comment: $("revComment").value.trim() || null, reviewer_name: name,
+      });
+      if (error) throw error;
+      closeSheet(); toast("Thanks for your review!"); loadReviews(salonId);
+    } catch (ex) {
+      const e = $("revErr"); e.textContent = ex.message || "Couldn't submit — did you already review this salon?"; e.hidden = false;
+      $("revSubmit").disabled = false; $("revSubmit").textContent = "Submit review";
+    }
+  };
+}
 function timeAgo(t) {
   const d = (Date.now() - new Date(t).getTime()) / 1000;
   if (d < 3600) return Math.max(1, Math.floor(d / 60)) + "m ago";
@@ -334,8 +379,76 @@ async function loadServices(id) {
 }
 async function bookNow(s) {
   if (!session) { openAuth("book"); return; }
-  window.open(PLAY_URL, "_blank");
-  toast("Finish booking with secure payment in the app.");
+  if (!selectedServices.length) { toast("Select at least one service first."); return; }
+  openBookingSheet(s);
+}
+
+// Booking: pick date/time, then pay the full amount via Razorpay web checkout.
+function openBookingSheet(s) {
+  const total = selectedServices.reduce((a, x) => a + (x.price || 0), 0);
+  const today = new Date().toISOString().slice(0, 10);
+  openSheet(`
+    <button class="sheet-close" onclick="closeSheet()">✕</button>
+    <h3>Book appointment</h3>
+    <p class="muted">${esc(s.name)} · ${selectedServices.length} service${selectedServices.length > 1 ? "s" : ""} · ₹${total}</p>
+    <label class="fld">Date<input type="date" id="bkDate" min="${today}" value="${today}"></label>
+    <label class="fld">Time<input type="time" id="bkTime" value="10:00"></label>
+    <div id="bkErr" class="auth-error" hidden></div>
+    <button class="btn gold block" id="bkPay" style="margin-top:16px">Pay ₹${total} &amp; book</button>
+    <p class="muted small" style="margin-top:12px;text-align:center">Secure payment via Razorpay. Free cancellation up to 2 hours before (refund minus ~2.36% gateway fee).</p>`);
+  $("bkPay").onclick = () => payAndBook(s, total);
+}
+
+async function payAndBook(s, total) {
+  const date = $("bkDate").value, time = $("bkTime").value;
+  const err = $("bkErr");
+  if (!date || !time) { err.textContent = "Pick a date and time."; err.hidden = false; return; }
+  const scheduledAt = new Date(`${date}T${time}`);
+  if (scheduledAt.getTime() < Date.now()) { err.textContent = "Pick a future time."; err.hidden = false; return; }
+  err.hidden = true;
+  $("bkPay").disabled = true; $("bkPay").textContent = "Starting payment…";
+  try {
+    const res = await sb.functions.invoke("create-razorpay-order", { body: { amount_rupees: total, receipt: "web_" + Date.now() } });
+    const d = res.data;
+    if (!d || !d.order_id) throw new Error("Could not start the payment. Please try again.");
+    const rzp = new Razorpay({
+      key: d.key_id, amount: d.amount, currency: "INR", order_id: d.order_id,
+      name: "Salonn", description: selectedServices.map((x) => x.name).join(", "),
+      prefill: { email: session.user.email },
+      theme: { color: "#FFD700" },
+      handler: async (resp) => {
+        const v = await sb.functions.invoke("verify-razorpay-payment", {
+          body: { razorpay_order_id: resp.razorpay_order_id, razorpay_payment_id: resp.razorpay_payment_id, razorpay_signature: resp.razorpay_signature },
+        });
+        if (!(v.data && v.data.valid)) { toast("Payment could not be verified. Any amount debited is auto-refunded."); resetPayBtn(total); return; }
+        await createWebBooking(s, total, scheduledAt, resp);
+      },
+      modal: { ondismiss: () => resetPayBtn(total) },
+    });
+    rzp.open();
+  } catch (ex) {
+    err.textContent = ex.message || "Payment failed."; err.hidden = false;
+    resetPayBtn(total);
+  }
+}
+function resetPayBtn(total) { const b = $("bkPay"); if (b) { b.disabled = false; b.textContent = `Pay ₹${total} & book`; } }
+
+async function createWebBooking(s, total, scheduledAt, resp) {
+  const dur = selectedServices.reduce((a, x) => a + (x.duration_minutes || 0), 0) || 30;
+  const summary = selectedServices.map((x) => x.name).join(", ");
+  const name = session.user.user_metadata?.full_name || session.user.email.split("@")[0];
+  const { error } = await sb.from("bookings").insert({
+    salon_id: s.id, customer_id: session.user.id, customer_name: name,
+    service_id: selectedServices[0].id, service_name: summary,
+    scheduled_at: scheduledAt.toISOString(), duration_minutes: dur, amount: total,
+    status: "upcoming", payment_status: "paid", payment_mode: "online",
+    razorpay_order_id: resp.razorpay_order_id, razorpay_payment_id: resp.razorpay_payment_id,
+  });
+  if (error) {
+    toast("Paid, but the booking couldn't be saved. Email support with payment id " + resp.razorpay_payment_id);
+    return;
+  }
+  closeSheet(); closeDetail(); show("bookings"); toast("Booked! Payment successful 🎉");
 }
 
 /* ── Bookings ── */

@@ -340,3 +340,30 @@ html,body{overflow:hidden} /* the app's own .scroll areas handle scrolling */
 /* ── Salon banner: perfect 16:9 (not oversized) ── */
 .d-hero img{aspect-ratio:16/9}
 @media(min-width:820px){ .d-hero img{aspect-ratio:16/9} }
+
+/* ── Salon detail header bar ── */
+.d-head{position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:10px;
+  padding:11px 14px;background:var(--bg);border-bottom:1px solid var(--border)}
+.d-hback{width:38px;height:38px;border-radius:11px;background:var(--surface);border:1px solid var(--border);
+  color:var(--text);cursor:pointer;display:grid;place-items:center;flex:none}
+.d-hbrand{font-family:'Space Grotesk';font-weight:700;font-size:18px}
+.d-hero{margin-top:0}
+
+/* ── Write-a-review button ── */
+.write-btn{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--gold);
+  color:var(--gold);font-weight:800;font-size:12.5px;padding:7px 13px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.write-btn:hover{background:rgba(255,215,0,.1)}
+
+/* ── Star rating input + form fields (sheets) ── */
+.star-input{display:flex;gap:10px;justify-content:center;font-size:36px;color:var(--border-strong);margin:16px 0 4px}
+.star-input span{cursor:pointer;transition:transform .1s,color .1s}
+.star-input span:active{transform:scale(.85)}
+.star-input span.on{color:var(--star)}
+.rev-textarea{width:100%;min-height:92px;background:var(--surface-2);border:1px solid var(--border-strong);
+  border-radius:12px;padding:12px 14px;color:var(--text);font-size:15px;font-family:'Manrope';margin:12px 0 14px;resize:vertical}
+.rev-textarea:focus{outline:none;border-color:var(--gold)}
+.fld{display:block;text-align:left;font-size:13px;color:var(--muted);font-weight:600;margin-top:12px}
+.fld input{display:block;width:100%;margin-top:6px;background:var(--surface-2);border:1px solid var(--border-strong);
+  border-radius:12px;padding:13px 14px;color:var(--text);font-size:15px;font-family:'Manrope'}
+.fld input:focus{outline:none;border-color:var(--gold)}
+.sheet .btn{margin-top:6px}
