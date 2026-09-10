@@ -327,3 +327,16 @@ html,body{overflow:hidden} /* the app's own .scroll areas handle scrolling */
 /* ── Clear social brand icons ── */
 .social a svg{width:20px;height:20px}
 .social a{font-size:0}
+
+/* ── Keep navigation visible on the salon detail ── */
+/* Phone: leave the bottom tab bar visible (book bar sits just above it) */
+.screen.detail{inset:0 0 calc(var(--tabh) + env(safe-area-inset-bottom)) 0;z-index:20}
+.detail .detail-bar{padding-bottom:14px}
+/* Desktop: detail opens BELOW the top nav header (header stays) */
+@media(min-width:820px){
+  .screen.detail{top:62px;inset:62px 0 0 0}
+}
+
+/* ── Salon banner: perfect 16:9 (not oversized) ── */
+.d-hero img{aspect-ratio:16/9}
+@media(min-width:820px){ .d-hero img{aspect-ratio:16/9} }
