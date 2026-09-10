@@ -211,10 +211,11 @@ async function openSalon(s) {
   const dist = s.dist != null ? ` · ${s.dist.toFixed(1)} km away` : "";
   $("detailBody").innerHTML = `
     <div class="d-head">
-      <button class="d-hback" onclick="closeDetail()" aria-label="Back">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M15.5 4.5 8 12l7.5 7.5 1.4-1.4L10.8 12l6.1-6.1z"/></svg>
-      </button>
       <span class="brand-mark small">S</span><b class="d-hbrand">Salonn</b>
+      <button class="d-getapp" id="dGetApp">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M3 3.5v17c0 .8.9 1.3 1.6.9l14-8.5c.7-.4.7-1.4 0-1.8l-14-8.5C3.9 2.2 3 2.7 3 3.5Z"/></svg>
+        Get app
+      </button>
     </div>
     <div class="d-hero">
       <img id="dHeroImg" src="${esc(s.image_url || "")}" onerror="this.style.background='#1f1f1f'">
@@ -230,6 +231,7 @@ async function openSalon(s) {
     </div>
     <div class="d-note">↩️ Track your <b>refund status</b> and see <b>reschedules</b> live in the <b>Salonn app</b>.</div>`;
   $("detailPrice").textContent = "₹0";
+  $("dGetApp").onclick = () => window.open(PLAY_URL, "_blank");
   $("detailBook").onclick = () => bookNow(s);
   loadGallery(s.id);
   loadServices(s.id);
@@ -383,28 +385,60 @@ async function bookNow(s) {
   openBookingSheet(s);
 }
 
-// Booking: pick date/time, then pay the full amount via Razorpay web checkout.
+// Booking: pick a day + time slot (app-style), then pay via Razorpay.
 function openBookingSheet(s) {
   const total = selectedServices.reduce((a, x) => a + (x.price || 0), 0);
-  const today = new Date().toISOString().slice(0, 10);
+  let selDate = new Date(); selDate.setHours(0, 0, 0, 0);
+  let selTime = null;
+
   openSheet(`
     <button class="sheet-close" onclick="closeSheet()">✕</button>
-    <h3>Book appointment</h3>
-    <p class="muted">${esc(s.name)} · ${selectedServices.length} service${selectedServices.length > 1 ? "s" : ""} · ₹${total}</p>
-    <label class="fld">Date<input type="date" id="bkDate" min="${today}" value="${today}"></label>
-    <label class="fld">Time<input type="time" id="bkTime" value="10:00"></label>
+    <h3>Pick date &amp; time</h3>
+    <p class="muted">${esc(s.name)} · ₹${total}</p>
+    <div class="day-row" id="dayRow"></div>
+    <div class="slot-label">Available times</div>
+    <div class="slot-grid" id="slotGrid"></div>
     <div id="bkErr" class="auth-error" hidden></div>
-    <button class="btn gold block" id="bkPay" style="margin-top:16px">Pay ₹${total} &amp; book</button>
+    <button class="btn gold block" id="bkPay">Pay ₹${total} &amp; book</button>
     <p class="muted small" style="margin-top:12px;text-align:center">Secure payment via Razorpay. Free cancellation up to 2 hours before (refund minus ~2.36% gateway fee).</p>`);
-  $("bkPay").onclick = () => payAndBook(s, total);
+
+  // Day chips (next 10 days)
+  const dayRow = $("dayRow");
+  for (let i = 0; i < 10; i++) {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i);
+    const chip = document.createElement("button");
+    chip.className = "day-chip" + (i === 0 ? " on" : "");
+    chip.innerHTML = `<small>${i === 0 ? "Today" : d.toLocaleDateString(undefined, { weekday: "short" })}</small><b>${d.getDate()}</b><small>${d.toLocaleDateString(undefined, { month: "short" })}</small>`;
+    chip.onclick = () => { selDate = d; dayRow.querySelectorAll(".day-chip").forEach((c) => c.classList.toggle("on", c === chip)); buildSlots(); };
+    dayRow.appendChild(chip);
+  }
+
+  function buildSlots() {
+    const grid = $("slotGrid"); grid.innerHTML = ""; selTime = null;
+    const cutoff = Date.now() + 30 * 60000; // at least 30 min ahead
+    for (let h = 9; h <= 20; h++) {
+      for (const m of [0, 30]) {
+        if (h === 20 && m === 30) continue;
+        const t = new Date(selDate); t.setHours(h, m, 0, 0);
+        const b = document.createElement("button");
+        b.className = "slot"; b.disabled = t.getTime() < cutoff;
+        b.textContent = t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+        b.onclick = () => { selTime = t; grid.querySelectorAll(".slot").forEach((x) => x.classList.remove("on")); b.classList.add("on"); };
+        grid.appendChild(b);
+      }
+    }
+  }
+  buildSlots();
+
+  $("bkPay").onclick = () => {
+    if (!selTime) { const e = $("bkErr"); e.textContent = "Please pick a time slot."; e.hidden = false; return; }
+    payAndBook(s, total, selTime);
+  };
 }
 
-async function payAndBook(s, total) {
-  const date = $("bkDate").value, time = $("bkTime").value;
+async function payAndBook(s, total, scheduledAt) {
   const err = $("bkErr");
-  if (!date || !time) { err.textContent = "Pick a date and time."; err.hidden = false; return; }
-  const scheduledAt = new Date(`${date}T${time}`);
-  if (scheduledAt.getTime() < Date.now()) { err.textContent = "Pick a future time."; err.hidden = false; return; }
+  if (!scheduledAt || scheduledAt.getTime() < Date.now()) { err.textContent = "Pick a future time."; err.hidden = false; return; }
   err.hidden = true;
   $("bkPay").disabled = true; $("bkPay").textContent = "Starting payment…";
   try {

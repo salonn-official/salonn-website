@@ -367,3 +367,24 @@ html,body{overflow:hidden} /* the app's own .scroll areas handle scrolling */
   border-radius:12px;padding:13px 14px;color:var(--text);font-size:15px;font-family:'Manrope'}
 .fld input:focus{outline:none;border-color:var(--gold)}
 .sheet .btn{margin-top:6px}
+
+/* ── Detail header: Salonn left, Get-app (Play Store) right ── */
+.d-getapp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;background:var(--gold);color:var(--ink);
+  border:none;border-radius:999px;padding:8px 15px;font-weight:800;font-size:13px;cursor:pointer;flex:none}
+.d-getapp:hover{background:#ffe14d}
+
+/* ── Booking sheet: scrollable + app-style day / time pickers ── */
+.sheet{max-height:90vh;overflow-y:auto}
+.day-row{display:flex;gap:8px;overflow-x:auto;margin:16px 0 4px;scrollbar-width:none}
+.day-row::-webkit-scrollbar{display:none}
+.day-chip{flex:none;width:58px;padding:10px 0;border-radius:15px;background:var(--surface-2);border:1px solid var(--border);
+  color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px}
+.day-chip small{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.day-chip b{font-size:19px;font-family:'Space Grotesk';line-height:1.15}
+.day-chip.on{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.slot-label{font-size:13px;color:var(--muted);font-weight:700;margin:14px 0 8px;text-align:left}
+.slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-height:210px;overflow-y:auto;margin-bottom:14px}
+.slot{padding:11px 0;border-radius:11px;background:var(--surface-2);border:1px solid var(--border);
+  color:var(--text);font-weight:700;font-size:12.5px;cursor:pointer}
+.slot:disabled{opacity:.3;cursor:not-allowed}
+.slot.on{background:var(--gold);color:var(--ink);border-color:var(--gold)}
