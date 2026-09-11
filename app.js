@@ -20,7 +20,17 @@ const SOCIAL_SVG = {
   youtube: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23 12s0-3.2-.4-4.7a2.5 2.5 0 0 0-1.8-1.8C19.3 5.1 12 5.1 12 5.1s-7.3 0-8.8.4A2.5 2.5 0 0 0 1.4 7.3C1 8.8 1 12 1 12s0 3.2.4 4.7c.2.9.9 1.6 1.8 1.8 1.5.4 8.8.4 8.8.4s7.3 0 8.8-.4a2.5 2.5 0 0 0 1.8-1.8c.4-1.5.4-4.7.4-4.7Zm-13.2 3V9l5.2 3-5.2 3Z"/></svg>`,
 };
 let session = null, userPos = null, allSalons = [], reelsLoaded = false;
-let activeCat = "All", selectedServices = [], userArea = null;
+let activeCat = "All", selectedServices = [], userArea = null, salonCats = {};
+
+// Category chip → the words that identify it in a salon's service list.
+// (DB categories are Hair/Skin/… so we match by keyword, not exact label.)
+const CAT_TOKENS = {
+  Haircut: ["hair"],
+  Beard: ["beard", "shave", "saving", "trim"],
+  Facial: ["skin", "facial", "face", "clean"],
+  Colour: ["colour", "color", "dye", "highlight"],
+  Spa: ["spa", "massage", "massaga"],
+};
 
 /* ── Toast ── */
 let toastT;
@@ -87,12 +97,44 @@ function distanceKm(a, b, c, d) {
 }
 async function loadSalons() {
   $("salonList").innerHTML = `<div class="empty">Loading salons…</div>`;
-  const { data, error } = await sb.from("salons")
-    .select("id,name,area,city,rating,image_url,latitude,longitude,address").eq("status", "approved");
-  if (error || !data) { $("salonList").innerHTML = `<div class="empty">Couldn't load salons.</div>`; return; }
-  allSalons = data.map((s) => ({ ...s, dist: userPos && s.latitude && s.longitude ? distanceKm(userPos.lat, userPos.lng, s.latitude, s.longitude) : null }));
-  allSalons.sort((a, b) => (a.dist != null && b.dist != null ? a.dist - b.dist : (b.rating || 0) - (a.rating || 0)));
+  // Salons + their service categories + popularity signal, in parallel.
+  const [salonsRes, svcRes, actRes] = await Promise.all([
+    sb.from("salons").select("id,name,area,city,rating,image_url,latitude,longitude,address").eq("status", "approved"),
+    sb.from("services").select("salon_id,category,name").eq("active", true),
+    sb.rpc("salon_activity"),
+  ]);
+  const data = salonsRes.data;
+  if (salonsRes.error || !data) { $("salonList").innerHTML = `<div class="empty">Couldn't load salons.</div>`; return; }
+
+  // Map salon → its service keywords (for category filter + search).
+  salonCats = {};
+  for (const v of (svcRes.data || [])) {
+    (salonCats[v.salon_id] ||= []).push(`${v.category || ""} ${v.name || ""}`.toLowerCase());
+  }
+  // Map salon → activity score: bookings + reviews + likes (more = higher).
+  const score = {};
+  for (const a of (actRes.data || [])) {
+    score[a.salon_id] = (a.bookings || 0) * 3 + (a.reviews || 0) * 2 + (a.likes || 0);
+  }
+
+  allSalons = data.map((s) => ({
+    ...s,
+    dist: userPos && s.latitude && s.longitude ? distanceKm(userPos.lat, userPos.lng, s.latitude, s.longitude) : null,
+    activity: score[s.id] || 0,
+  }));
+  // Most-active salon first (booking/likes/reviews), then rating, then distance.
+  allSalons.sort((a, b) =>
+    (b.activity - a.activity) ||
+    ((b.rating || 0) - (a.rating || 0)) ||
+    ((a.dist ?? 9e9) - (b.dist ?? 9e9)));
   renderSalons();
+}
+// True when a salon offers the selected category (keyword match on its services).
+function salonHasCat(s, cat) {
+  if (cat === "All") return true;
+  const toks = CAT_TOKENS[cat] || [cat.toLowerCase()];
+  const svcs = salonCats[s.id] || [];
+  return svcs.some((hay) => toks.some((t) => hay.includes(t)));
 }
 function salonCard(s) {
   const area = esc([s.area, s.city].filter(Boolean).join(", ") || "Nearby");
@@ -108,10 +150,11 @@ function salonCard(s) {
 function renderSalons() {
   const q = $("searchInput").value.trim().toLowerCase();
   const filtering = q || activeCat !== "All";
-  // Base: search + category
+  // Base: search (name/area/city + service names) + category (by service)
   const base = allSalons.filter((s) => {
     const hay = `${s.name} ${s.area} ${s.city}`.toLowerCase();
-    return (!q || hay.includes(q)) && (activeCat === "All" || hay.includes(activeCat.toLowerCase()));
+    const matchesSearch = !q || hay.includes(q) || (salonCats[s.id] || []).some((x) => x.includes(q));
+    return matchesSearch && salonHasCat(s, activeCat);
   });
   // Only salons that serve the customer's fetched area.
   let list = base.filter(salonInArea);
@@ -162,7 +205,7 @@ function expandingState(area) {
 $("searchInput").addEventListener("input", renderSalons);
 
 /* categories */
-const CATS = ["All", "Haircut", "Beard", "Facial", "Spa", "Colour", "Bridal", "Massage"];
+const CATS = ["All", "Haircut", "Beard", "Facial", "Colour", "Spa"];
 $("cats").innerHTML = CATS.map((c, i) => `<button class="chip ${i === 0 ? "active" : ""}" data-cat="${c}">${c}</button>`).join("");
 $("cats").querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => {
   activeCat = b.dataset.cat;
