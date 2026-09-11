@@ -168,6 +168,8 @@ input,button{font-family:inherit}
   border-radius:14px;font-weight:800;font-size:15px;padding:15px 20px;transition:transform .1s}
 .btn:active{transform:scale(.98)}
 .btn.gold{background:var(--gold);color:var(--ink)} .btn.gold:hover{background:#ffe14d}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.gold:disabled{background:var(--surface-2);color:var(--muted)}
 .btn.ghost{background:var(--surface);color:var(--text);border:1px solid var(--border-strong)}
 .btn.block{width:100%}
 
@@ -373,19 +375,40 @@ html,body{overflow:hidden} /* the app's own .scroll areas handle scrolling */
   border:none;border-radius:999px;padding:8px 15px;font-weight:800;font-size:13px;cursor:pointer;flex:none}
 .d-getapp:hover{background:#ffe14d}
 
-/* ── Booking sheet: scrollable + app-style day / time pickers ── */
+/* ── Booking sheet: 1:1 clone of the app's "Select date & time" ── */
 .sheet{max-height:90vh;overflow-y:auto}
-.day-row{display:flex;gap:8px;overflow-x:auto;margin:16px 0 4px;scrollbar-width:none}
+.bk{text-align:left}
+.bk-title{font-size:24px}
+.bk-sub{color:var(--muted);font-size:13px;margin:6px 0 20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bk-month{font-family:'Space Grotesk';font-size:11px;color:var(--muted);letter-spacing:1.5px;margin-bottom:12px}
+.bk-note{margin-top:14px;text-align:center}
+.day-row{display:flex;gap:9px;overflow-x:auto;margin:0 0 4px;scrollbar-width:none}
 .day-row::-webkit-scrollbar{display:none}
-.day-chip{flex:none;width:58px;padding:10px 0;border-radius:15px;background:var(--surface-2);border:1px solid var(--border);
-  color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px}
-.day-chip small{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
-.day-chip b{font-size:19px;font-family:'Space Grotesk';line-height:1.15}
+.day-chip{flex:none;width:52px;padding:12px 0;border-radius:18px;background:var(--surface-2);border:1px solid var(--border);
+  color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px}
+.day-chip small{font-size:11px;font-weight:600}
+.day-chip b{font-size:18px;font-family:'Space Grotesk';font-weight:700;line-height:1;color:var(--text)}
 .day-chip.on{background:var(--gold);color:var(--ink);border-color:var(--gold)}
-.slot-label{font-size:13px;color:var(--muted);font-weight:700;margin:14px 0 8px;text-align:left}
-.slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-height:210px;overflow-y:auto;margin-bottom:14px}
-.slot{padding:11px 0;border-radius:11px;background:var(--surface-2);border:1px solid var(--border);
-  color:var(--text);font-weight:700;font-size:12.5px;cursor:pointer}
-.slot:disabled{opacity:.3;cursor:not-allowed}
-.slot.on{background:var(--gold);color:var(--ink);border-color:var(--gold)}
-.slot-msg{grid-column:1/-1;text-align:center;color:var(--muted);font-size:13px;font-weight:600;padding:22px 8px}
+.day-chip.on small,.day-chip.on b{color:var(--ink)}
+
+/* Appointment window card — shows the start–end time + total duration */
+.appt-window{display:flex;align-items:center;gap:13px;margin:20px 0;padding:16px;border-radius:18px;
+  background:rgba(255,215,0,.09);border:1px solid var(--border)}
+.aw-ico{width:42px;height:42px;flex:none;border-radius:12px;background:var(--gold);color:var(--ink);display:grid;place-items:center}
+.aw-body{flex:1;min-width:0}
+.aw-body small{display:block;font-family:'Space Grotesk';font-size:9.5px;color:var(--muted);letter-spacing:1px}
+.aw-body b{font-family:'Space Grotesk';font-size:17px;letter-spacing:-.3px}
+.aw-min{flex:none;background:var(--bg);color:var(--gold);font-weight:700;font-size:12px;padding:6px 11px;border-radius:999px}
+
+/* Morning / Afternoon / Evening sections */
+.slot-sec{margin-bottom:20px}
+.slot-sec h4{font-family:'Space Grotesk';font-size:15px;letter-spacing:-.2px;margin-bottom:12px}
+.slot-wrap{display:flex;flex-wrap:wrap;gap:9px}
+.tslot{width:78px;height:46px;border-radius:14px;background:var(--surface-2);border:1px solid var(--border);
+  color:var(--text);font-weight:600;font-size:13px;cursor:pointer}
+.tslot.on{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.slot-msg{text-align:center;color:var(--muted);font-size:13px;font-weight:600;padding:30px 8px}
+.slot-empty{text-align:center;padding:34px 8px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.se-ico{width:64px;height:64px;border-radius:50%;background:var(--surface-2);color:var(--gold-dim);display:grid;place-items:center}
+.slot-empty b{font-family:'Space Grotesk';font-size:17px;letter-spacing:-.3px}
+.slot-empty span{color:var(--muted);font-size:12.5px;max-width:260px}

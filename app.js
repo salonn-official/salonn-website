@@ -385,82 +385,179 @@ async function bookNow(s) {
   openBookingSheet(s);
 }
 
-// Booking: pick a day + time slot (app-style), then pay via Razorpay.
+// Booking: "Select date & time" — a 1:1 clone of the app's DateTimeScreen.
+// Real opening hours + break + booked slots, one box per open hour split into
+// Morning/Afternoon/Evening, and an appointment-window card that shows the
+// start–end time and total duration ("how long it'll take").
 function openBookingSheet(s) {
   const total = selectedServices.reduce((a, x) => a + (x.price || 0), 0);
-  let selDate = new Date(); selDate.setHours(0, 0, 0, 0);
-  let selTime = null;
-
-  openSheet(`
-    <button class="sheet-close" onclick="closeSheet()">✕</button>
-    <h3>Pick date &amp; time</h3>
-    <p class="muted">${esc(s.name)} · ₹${total}</p>
-    <div class="day-row" id="dayRow"></div>
-    <div class="slot-label">Available times</div>
-    <div class="slot-grid" id="slotGrid"></div>
-    <div id="bkErr" class="auth-error" hidden></div>
-    <button class="btn gold block" id="bkPay">Pay ₹${total} &amp; book</button>
-    <p class="muted small" style="margin-top:12px;text-align:center">Secure payment via Razorpay. Free cancellation up to 2 hours before (refund minus ~2.36% gateway fee).</p>`);
-
-  // Day chips (next 10 days)
-  const dayRow = $("dayRow");
-  for (let i = 0; i < 10; i++) {
-    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i);
-    const chip = document.createElement("button");
-    chip.className = "day-chip" + (i === 0 ? " on" : "");
-    chip.innerHTML = `<small>${i === 0 ? "Today" : d.toLocaleDateString(undefined, { weekday: "short" })}</small><b>${d.getDate()}</b><small>${d.toLocaleDateString(undefined, { month: "short" })}</small>`;
-    chip.onclick = () => { selDate = d; dayRow.querySelectorAll(".day-chip").forEach((c) => c.classList.toggle("on", c === chip)); loadSlots(); };
-    dayRow.appendChild(chip);
-  }
-
+  const totalMin = selectedServices.reduce((a, x) => a + (x.duration_minutes || 0), 0);
+  const dur = totalMin > 0 ? totalMin : 30;
+  const summary = selectedServices.map((x) => x.name).join(", ") || "Service";
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const MONTHS_UP = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+  const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const pad = (n) => String(n).padStart(2, "0");
   const hourOf = (hms, fb) => { if (!hms) return fb; const h = parseInt(String(hms).split(":")[0], 10); return isNaN(h) ? fb : h; };
 
-  // Fetch the salon's REAL opening hours + booked slots for the chosen day,
-  // then render only the genuinely-available times (app-accurate).
-  async function loadSlots() {
-    selTime = null;
-    const grid = $("slotGrid");
-    grid.innerHTML = `<div class="slot-msg">Loading times…</div>`;
-    const dayStr = `${selDate.getFullYear()}-${pad(selDate.getMonth() + 1)}-${pad(selDate.getDate())}`;
-    let av = null;
-    try { const { data } = await sb.rpc("salon_day_availability", { p_salon_id: s.id, p_day: dayStr }); av = data; } catch (_) {}
-    renderSlots(av || {});
+  const now = new Date();
+  // Today is bookable only before 21:00 (matches the app), then start tomorrow.
+  const startOffset = now.getHours() < 21 ? 0 : 1;
+  const dayOffsets = Array.from({ length: 7 }, (_, i) => startOffset + i);
+  let selOffset = startOffset;
+  let selDate = dayStart(selOffset);
+  let selTimeStr = null;    // "HH:MM"
+  let av = {};              // current day's availability
+
+  function dayStart(off) { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + off); return d; }
+
+  const mLabel = `${MONTHS_UP[now.getMonth()]} ${now.getFullYear()}`;
+  openSheet(`
+    <button class="sheet-close" onclick="closeSheet()">✕</button>
+    <div class="bk">
+      <h3 class="bk-title">Select date &amp; time</h3>
+      <p class="bk-sub">${esc(summary)} at ${esc(s.name)}</p>
+      <div class="bk-month">${mLabel}</div>
+      <div class="day-row" id="dayRow"></div>
+      <div class="appt-window" id="apptWin" hidden></div>
+      <div id="slotSections"></div>
+      <div id="bkErr" class="auth-error" hidden></div>
+      <button class="btn gold block" id="bkPay" disabled>Select a time</button>
+      <p class="muted small bk-note">Secure payment via Razorpay. Free cancellation up to 2 hours before (refund minus ~2.36% gateway fee).</p>
+    </div>`);
+
+  // ── Day chips ──
+  const dayRow = $("dayRow");
+  dayOffsets.forEach((off) => {
+    const d = dayStart(off);
+    const chip = document.createElement("button");
+    chip.className = "day-chip" + (off === selOffset ? " on" : "");
+    chip.innerHTML = `<small>${off === 0 ? "Today" : DAYS[d.getDay()]}</small><b>${d.getDate()}</b>`;
+    chip.onclick = () => {
+      selOffset = off; selDate = d;
+      dayRow.querySelectorAll(".day-chip").forEach((c) => c.classList.toggle("on", c === chip));
+      loadSlots();
+    };
+    dayRow.appendChild(chip);
+  });
+
+  // ── Availability helpers (mirror the app's AppState logic) ──
+  function busyIntervals() {
+    return (av.busy || []).map((b) => { const st = new Date(b.start).getTime(); return { start: st, end: st + ((b.minutes || 30) * 60000) }; });
+  }
+  function dateFor(hhmm) { const [h, m] = hhmm.split(":").map(Number); const t = new Date(selDate); t.setHours(h, m, 0, 0); return t; }
+
+  function isSlotAvailable(hhmm, busy) {
+    if (av.is_open === false) return false;
+    const openH = hourOf(av.open_at, 9), closeH = hourOf(av.close_at, 20);
+    const h = parseInt(hhmm.split(":")[0], 10);
+    if (h < openH || h >= closeH) return false;
+    if (av.has_break === true) {
+      const bs = hourOf(av.break_start, null), be = hourOf(av.break_end, null);
+      if (bs != null && be != null && h >= bs && h < be) return false;
+    }
+    const start = dateFor(hhmm);
+    if (selOffset === 0 && start.getTime() < Date.now() + 15 * 60000) return false; // past (15-min buffer)
+    const end = new Date(start.getTime() + dur * 60000);
+    const close = new Date(selDate); close.setHours(closeH, 0, 0, 0);
+    if (end.getTime() > close.getTime()) return false; // service must fit before closing
+    const staff = (av.staff_count && av.staff_count > 0) ? av.staff_count : 1;
+    let clashes = 0;
+    for (const b of busy) { if (start.getTime() < b.end && b.start < end.getTime()) clashes++; }
+    return clashes < staff;
   }
 
-  function renderSlots(av) {
-    const grid = $("slotGrid"); grid.innerHTML = "";
-    if (av.is_open === false) { grid.innerHTML = `<div class="slot-msg">Closed on this day.</div>`; return; }
+  // One box per open hour; if the top of the hour is taken, shift to the first
+  // free 5-min moment inside that hour; drop the hour only if fully booked.
+  function availableSlots() {
+    const busy = busyIntervals();
     const openH = hourOf(av.open_at, 9), closeH = hourOf(av.close_at, 20);
-    const hasBreak = av.has_break === true;
-    const bs = hasBreak ? hourOf(av.break_start, null) : null;
-    const be = hasBreak ? hourOf(av.break_end, null) : null;
-    const staff = (av.staff_count && av.staff_count > 0) ? av.staff_count : 1;
-    const busy = (av.busy || []).map((b) => { const st = new Date(b.start).getTime(); return { start: st, end: st + ((b.minutes || 30) * 60000) }; });
-    const cutoff = Date.now() + 30 * 60000; // at least 30 min ahead
-    let anyFree = false;
+    const out = [];
     for (let h = openH; h < closeH; h++) {
-      if (bs != null && be != null && h >= bs && h < be) continue; // lunch/break
-      for (const m of [0, 30]) {
-        const t = new Date(selDate); t.setHours(h, m, 0, 0);
-        const tm = t.getTime(), tEnd = tm + 30 * 60000;
-        const overlapping = busy.filter((b) => tm < b.end && tEnd > b.start).length;
-        const disabled = tm < cutoff || overlapping >= staff; // past or fully booked
-        const b = document.createElement("button");
-        b.className = "slot"; b.disabled = disabled;
-        b.textContent = t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-        b.onclick = () => { selTime = t; grid.querySelectorAll(".slot").forEach((x) => x.classList.remove("on")); b.classList.add("on"); };
-        grid.appendChild(b);
-        if (!disabled) anyFree = true;
+      const top = `${pad(h)}:00`;
+      if (isSlotAvailable(top, busy)) { out.push(top); continue; }
+      for (let m = 5; m < 60; m += 5) {
+        const cand = `${pad(h)}:${pad(m)}`;
+        if (isSlotAvailable(cand, busy)) { out.push(cand); break; }
       }
     }
-    if (!grid.children.length || !anyFree) grid.innerHTML = `<div class="slot-msg">No free slots on this day — try another day.</div>`;
+    return out;
   }
+
+  const fmt12 = (hhmm) => { let [h, m] = hhmm.split(":").map(Number); const ap = h >= 12 ? "PM" : "AM"; const h12 = h % 12 === 0 ? 12 : h % 12; return `${h12}:${pad(m)} ${ap}`; };
+  const addMin = (hhmm, mins) => { let [h, m] = hhmm.split(":").map(Number); const tot = h * 60 + m + mins; return `${pad(Math.floor(tot / 60) % 24)}:${pad(tot % 60)}`; };
+
+  function updateWindow() {
+    const win = $("apptWin"), pay = $("bkPay");
+    if (!selTimeStr) {
+      win.hidden = true; pay.disabled = true; pay.textContent = "Select a time";
+      return;
+    }
+    const range = `${fmt12(selTimeStr)} – ${fmt12(addMin(selTimeStr, dur))}`;
+    win.hidden = false;
+    win.innerHTML = `
+      <div class="aw-ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 10.4 4 2.3-1 1.7-5-2.9V6h2Z"/></svg></div>
+      <div class="aw-body"><small>YOUR APPOINTMENT WINDOW</small><b>${range}</b></div>
+      <span class="aw-min">${dur} min</span>`;
+    pay.disabled = false; pay.textContent = `Pay ₹${total} & book`;
+  }
+
+  async function loadSlots() {
+    selTimeStr = null; updateWindow();
+    const wrap = $("slotSections");
+    wrap.innerHTML = `<div class="slot-msg">Loading times…</div>`;
+    const dayStr = `${selDate.getFullYear()}-${pad(selDate.getMonth() + 1)}-${pad(selDate.getDate())}`;
+    av = {};
+    try { const { data } = await sb.rpc("salon_day_availability", { p_salon_id: s.id, p_day: dayStr }); av = data || {}; } catch (_) { av = {}; }
+    renderSlots();
+  }
+
+  function renderSlots() {
+    const wrap = $("slotSections"); wrap.innerHTML = "";
+    if (av.is_open === false) { wrap.innerHTML = emptyState(false); return; }
+    const slots = availableSlots();
+    if (!slots.length) { wrap.innerHTML = emptyState(true); return; }
+    const groups = [
+      ["Morning", slots.filter((t) => +t.split(":")[0] < 12)],
+      ["Afternoon", slots.filter((t) => { const h = +t.split(":")[0]; return h >= 12 && h < 16; })],
+      ["Evening", slots.filter((t) => +t.split(":")[0] >= 16)],
+    ];
+    for (const [title, times] of groups) {
+      if (!times.length) continue;
+      const sec = document.createElement("div"); sec.className = "slot-sec";
+      sec.innerHTML = `<h4>${title}</h4>`;
+      const grid = document.createElement("div"); grid.className = "slot-wrap";
+      for (const t of times) {
+        const b = document.createElement("button");
+        b.className = "tslot" + (t === selTimeStr ? " on" : "");
+        b.textContent = fmt12(t);
+        b.onclick = () => {
+          selTimeStr = t;
+          wrap.querySelectorAll(".tslot").forEach((x) => x.classList.remove("on"));
+          b.classList.add("on");
+          updateWindow();
+        };
+        grid.appendChild(b);
+      }
+      sec.appendChild(grid); wrap.appendChild(sec);
+    }
+  }
+
+  function emptyState(open) {
+    return `<div class="slot-empty">
+      <div class="se-ico">${open
+        ? `<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M7 2v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2Zm12 8v10H5V10Zm-4.3 2.3L11 16l-1.7-1.7-1.4 1.4L11 18.8l5.1-5.1z"/></svg>`
+        : `<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M4 8h16l-1 12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 8Zm2-4h12l1 3H5l1-3Z"/></svg>`}</div>
+      <b>${open ? "Fully booked this day" : "Closed this day"}</b>
+      <span>${open ? "All stylists are reserved — try another date." : "This salon is closed — try another date."}</span>
+    </div>`;
+  }
+
   loadSlots();
 
   $("bkPay").onclick = () => {
-    if (!selTime) { const e = $("bkErr"); e.textContent = "Please pick a time slot."; e.hidden = false; return; }
-    payAndBook(s, total, selTime);
+    if (!selTimeStr) { const e = $("bkErr"); e.textContent = "Please pick a time slot."; e.hidden = false; return; }
+    payAndBook(s, total, dateFor(selTimeStr));
   };
 }
 
