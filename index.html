@@ -73,7 +73,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=17" />
+  <link rel="stylesheet" href="styles.css?v=18" />
 </head>
 <body>
   <!-- Splash screen (matches the Salonn app: gold ground, dark tile + wordmark) -->
@@ -186,24 +186,9 @@
     <div class="rv-feed" id="rvFeed"></div>
   </div>
 
-  <!-- Auth modal -->
+  <!-- Auth modal (login → onboarding, no separate sign-up) -->
   <div id="authModal" class="modal" hidden>
-    <div class="sheet">
-      <button class="sheet-close" data-close-auth>✕</button>
-      <div class="brand-mark big">S</div>
-      <h3 id="authTitle">Welcome back</h3>
-      <p class="muted" id="authSub">Log in to book your appointment.</p>
-      <form id="authForm">
-        <input type="text" id="authName" placeholder="Full name" autocomplete="name" hidden />
-        <input type="email" id="authEmail" placeholder="Email" autocomplete="email" required />
-        <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password" required minlength="6" />
-        <div id="authError" class="auth-error" hidden></div>
-        <button type="submit" class="btn gold block" id="authSubmit">Log in</button>
-      </form>
-      <button class="btn ghost block" id="googleBtn">Continue with Google</button>
-      <p class="auth-switch"><span id="authSwitchText">New to Salonn?</span>
-        <button type="button" id="authSwitch" class="link">Create an account</button></p>
-    </div>
+    <div class="sheet" id="authBody"></div>
   </div>
 
   <div id="toast" class="toast" hidden></div>
@@ -213,6 +198,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  <script src="app.js?v=17"></script>
+  <script src="app.js?v=18"></script>
 </body>
 </html>

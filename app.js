@@ -20,7 +20,7 @@ const SOCIAL_SVG = {
   youtube: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23 12s0-3.2-.4-4.7a2.5 2.5 0 0 0-1.8-1.8C19.3 5.1 12 5.1 12 5.1s-7.3 0-8.8.4A2.5 2.5 0 0 0 1.4 7.3C1 8.8 1 12 1 12s0 3.2.4 4.7c.2.9.9 1.6 1.8 1.8 1.5.4 8.8.4 8.8.4s7.3 0 8.8-.4a2.5 2.5 0 0 0 1.8-1.8c.4-1.5.4-4.7.4-4.7Zm-13.2 3V9l5.2 3-5.2 3Z"/></svg>`,
 };
 let session = null, userPos = null, allSalons = [], reelsLoaded = false;
-let activeCat = "All", selectedServices = [], userArea = null, salonCats = {};
+let activeCat = "All", selectedServices = [], userArea = null, salonCats = {}, userGeo = null;
 
 // Category chip → the words that identify it in a salon's service list.
 // (DB categories are Hair/Skin/… so we match by keyword, not exact label.)
@@ -71,12 +71,25 @@ function askLocation() {
   );
 }
 // Turn coordinates into an area name (like the app), no API key needed.
-// The resolved locality (e.g. "Hirakud") drives which salons are shown.
+// The resolved locality (e.g. "Hirakud") drives which salons are shown, and the
+// full breakdown (area/city/district/state/country/pincode) is saved at sign-up.
 async function reverseGeocode(lat, lng) {
   try {
     const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
     const j = await r.json();
+    const admins = (j.localityInfo && j.localityInfo.administrative) || [];
+    const distEntry = admins.find((a) => /district/i.test(a.description || "") || /district/i.test(a.name || ""));
+    const pin = String(j.postcode || "").match(/\d{4,6}/);
     userArea = j.locality || j.city || j.principalSubdivision || null;
+    userGeo = {
+      area: j.locality || j.city || null,
+      city: j.city || j.locality || null,
+      district: distEntry ? distEntry.name.replace(/\s+district$/i, "") : null,
+      state: j.principalSubdivision || null,
+      country: j.countryName || null,
+      pincode: pin ? pin[0] : null,
+      latitude: lat, longitude: lng,
+    };
     $("locLabel").textContent = userArea || "Near you";
   } catch { $("locLabel").textContent = "Near you"; }
   renderSalons(); // re-filter to the customer's area now that it's known
@@ -898,37 +911,156 @@ function gate(icon, title, sub) {
 }
 function wireGate() { const g = $("gateLogin"); if (g) g.addEventListener("click", () => openAuth("login")); }
 
-/* ── Auth ── */
-let authMode = "login";
-document.querySelector("[data-close-auth]").addEventListener("click", () => ($("authModal").hidden = true));
-$("authModal").addEventListener("click", (e) => { if (e.target.id === "authModal") $("authModal").hidden = true; });
-$("authSwitch").addEventListener("click", () => setMode(authMode === "login" ? "signup" : "login"));
-function openAuth(reason) { setMode(reason === "book" ? "signup" : "login"); $("authModal").hidden = false; }
-function setMode(m) {
-  authMode = m; const su = m === "signup";
-  $("authName").hidden = !su;
-  $("authTitle").textContent = su ? "Create your account" : "Welcome back";
-  $("authSub").textContent = su ? "Join Salonn to book appointments." : "Log in to book your appointment.";
-  $("authSubmit").textContent = su ? "Create account" : "Log in";
-  $("authSwitchText").textContent = su ? "Already have an account?" : "New to Salonn?";
-  $("authSwitch").textContent = su ? "Log in" : "Create an account";
-  $("authError").hidden = true;
+/* ── Auth: login only, with first-time onboarding (no separate sign-up) ──
+ * Enter email + password → if the email is already registered, we log in;
+ * if not, we collect name + 10-digit phone (must be unique) and the fetched
+ * location, then create the account. Location parts are saved to `customers`. */
+let pendingEmail = "", pendingPass = "";
+$("authModal").addEventListener("click", (e) => { if (e.target.id === "authModal") closeAuth(); });
+function closeAuth() { $("authModal").hidden = true; }
+function openAuth(_reason) { renderAuthLogin(); $("authModal").hidden = false; }
+
+function renderAuthLogin(prefillEmail) {
+  $("authBody").innerHTML = `
+    <button class="sheet-close" onclick="closeAuth()">✕</button>
+    <div class="brand-mark big">S</div>
+    <h3>Log in to Salonn</h3>
+    <p class="muted">Enter your email to log in or get started.</p>
+    <form id="loginForm">
+      <input type="email" id="inEmail" placeholder="Email" autocomplete="email" required value="${esc(prefillEmail || "")}">
+      <input type="password" id="inPass" placeholder="Password" autocomplete="current-password" required minlength="6">
+      <div id="authErr" class="auth-error" hidden></div>
+      <button type="submit" class="btn gold block" id="loginBtn">Continue</button>
+    </form>
+    <div class="or-line"><span>or</span></div>
+    <button class="btn ghost block" id="googleBtn">Continue with Google</button>
+    <p class="muted small" style="margin-top:14px;text-align:center">New to Salonn? Enter your email and a password — we'll set you up next.</p>`;
+  $("loginForm").addEventListener("submit", (e) => { e.preventDefault(); submitLogin(); });
+  $("googleBtn").addEventListener("click", () => sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin } }));
 }
-$("authForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const email = $("authEmail").value.trim(), password = $("authPassword").value, name = $("authName").value.trim();
-  const err = $("authError"); err.hidden = true; $("authSubmit").disabled = true;
+
+async function submitLogin() {
+  const email = $("inEmail").value.trim(), pass = $("inPass").value;
+  const err = $("authErr"), btn = $("loginBtn"); err.hidden = true;
+  if (!email || pass.length < 6) { err.textContent = "Enter your email and a 6+ character password."; err.hidden = false; return; }
+  btn.disabled = true; btn.textContent = "Please wait…";
   try {
-    let res;
-    if (authMode === "signup") res = await sb.auth.signUp({ email, password, options: { data: { full_name: name || email.split("@")[0] } } });
-    else res = await sb.auth.signInWithPassword({ email, password });
-    if (res.error) throw res.error;
-    if (authMode === "signup" && !res.data.session) { err.textContent = "Check your email to confirm, then log in."; err.hidden = false; }
-    else { $("authModal").hidden = true; toast("Welcome to Salonn!"); }
-  } catch (ex) { err.textContent = ex.message || "Something went wrong."; err.hidden = false; }
-  finally { $("authSubmit").disabled = false; setMode(authMode); }
-});
-$("googleBtn").addEventListener("click", () => sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin } }));
+    let registered = false;
+    try { const { data } = await sb.rpc("email_is_registered", { p_email: email }); registered = data === true; } catch (_) {}
+    if (registered) {
+      const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+      if (error) { err.textContent = "Incorrect password. Please try again."; err.hidden = false; btn.disabled = false; btn.textContent = "Continue"; return; }
+      // Success → onAuthStateChange('SIGNED_IN') → afterAuth() closes the modal.
+    } else {
+      pendingEmail = email; pendingPass = pass;
+      if (!userGeo) askLocation(); // best-effort: make sure we have the location
+      renderAuthOnboard("signup", {});
+    }
+  } catch (_) {
+    err.textContent = "Something went wrong. Please try again."; err.hidden = false;
+    btn.disabled = false; btn.textContent = "Continue";
+  }
+}
+
+function locLine() {
+  if (!userGeo) return "";
+  const seen = new Set(), parts = [];
+  for (const p of [userGeo.area, userGeo.city, userGeo.state]) {
+    const v = (p || "").trim();
+    if (v && !seen.has(v.toLowerCase())) { seen.add(v.toLowerCase()); parts.push(v); }
+  }
+  return parts.join(", ");
+}
+
+function renderAuthOnboard(mode, prefill) {
+  const line = locLine();
+  $("authBody").innerHTML = `
+    <button class="sheet-close" onclick="closeAuth()">✕</button>
+    <div class="brand-mark big">S</div>
+    <h3>${mode === "signup" ? "Create your profile" : "Complete your profile"}</h3>
+    <p class="muted">Just a couple of details to finish setting up your account.</p>
+    <form id="obForm">
+      <input type="text" id="obName" placeholder="Full name" autocomplete="name" required value="${esc(prefill.name || "")}">
+      <input type="tel" id="obPhone" inputmode="numeric" maxlength="10" placeholder="10-digit phone number" required>
+      <div class="loc-box">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>
+        <span id="obLocText">${line ? esc(line) : "Detecting your location…"}</span>
+      </div>
+      <div id="obErr" class="auth-error" hidden></div>
+      <button type="submit" class="btn gold block" id="obBtn">${mode === "signup" ? "Create account" : "Save & continue"}</button>
+    </form>
+    <button class="link" id="obBack" style="margin-top:12px">← Use a different email</button>`;
+  $("obPhone").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10); });
+  $("obForm").addEventListener("submit", (e) => { e.preventDefault(); submitOnboard(mode); });
+  $("obBack").addEventListener("click", () => renderAuthLogin(pendingEmail));
+  if (!line) setTimeout(() => { const t = $("obLocText"); if (t && locLine()) t.textContent = locLine(); }, 2500);
+}
+
+async function submitOnboard(mode) {
+  const name = $("obName").value.trim(), phone = $("obPhone").value.replace(/\D/g, "");
+  const err = $("obErr"), btn = $("obBtn"); err.hidden = true;
+  const label = mode === "signup" ? "Create account" : "Save & continue";
+  if (!name) { err.textContent = "Please enter your name."; err.hidden = false; return; }
+  if (!/^\d{10}$/.test(phone)) { err.textContent = "Enter a valid 10-digit phone number."; err.hidden = false; return; }
+  btn.disabled = true; btn.textContent = "Please wait…";
+  try {
+    let taken = false;
+    try { const { data } = await sb.rpc("phone_is_registered", { p_phone: phone }); taken = data === true; } catch (_) {}
+    if (taken) { err.textContent = "This number is already registered. Please use another number."; err.hidden = false; btn.disabled = false; btn.textContent = label; return; }
+
+    let uid;
+    if (mode === "signup") {
+      const { data, error } = await sb.auth.signUp({
+        email: pendingEmail, password: pendingPass,
+        options: { data: { full_name: name, phone, address: locLine() } },
+      });
+      if (error) throw error;
+      uid = data.user?.id;
+      if (!data.session) { err.textContent = "Account created — please check your email to confirm, then log in."; err.hidden = false; btn.disabled = false; btn.textContent = label; return; }
+    } else {
+      uid = session?.user?.id;
+      if (uid) await sb.from("profiles").update({ full_name: name, phone }).eq("id", uid);
+    }
+    if (uid) await saveCustomerLocation(uid);
+    closeAuth();
+    toast("Welcome to Salonn!");
+    const cur = document.querySelector(".tab.active")?.dataset.tab;
+    if (cur === "profile") renderProfile();
+  } catch (ex) {
+    err.textContent = (ex && ex.message) ? ex.message : "Couldn't complete sign-up.";
+    err.hidden = false; btn.disabled = false; btn.textContent = label;
+  }
+}
+
+// Save the fetched location parts to the customer's row.
+async function saveCustomerLocation(uid) {
+  if (!userGeo) return;
+  try {
+    await sb.from("customers").upsert({
+      id: uid,
+      area: userGeo.area, city: userGeo.city, district: userGeo.district,
+      state: userGeo.state, country: userGeo.country, pincode: userGeo.pincode,
+      latitude: userGeo.latitude, longitude: userGeo.longitude,
+      location_updated_at: new Date().toISOString(),
+    }, { onConflict: "id" });
+  } catch (_) {}
+}
+
+// After a sign-in: returning customers go straight in; a brand-new Google
+// sign-in that still has no phone is asked to finish their profile.
+async function afterAuth(sess) {
+  if (!sess) return;
+  let prof = null;
+  try { const { data } = await sb.from("profiles").select("full_name,phone,role").eq("id", sess.user.id).maybeSingle(); prof = data; } catch (_) {}
+  const incomplete = !prof || (prof.role === "customer" && !(prof.phone && prof.phone.trim()));
+  if (incomplete) {
+    if (!userGeo) askLocation();
+    $("authModal").hidden = false;
+    renderAuthOnboard("complete", { name: prof?.full_name || sess.user.user_metadata?.full_name || "" });
+  } else {
+    closeAuth();
+  }
+}
 
 /* ── Social links ── */
 let socialCache = null;
@@ -962,8 +1094,9 @@ window.addEventListener("popstate", () => {
 
 /* ── Boot ── */
 sb.auth.getSession().then(({ data }) => { session = data.session; });
-sb.auth.onAuthStateChange((_e, s) => {
+sb.auth.onAuthStateChange((event, s) => {
   session = s;
+  if (event === "SIGNED_IN") afterAuth(s); // returning → straight in; new Google → finish profile
   const cur = document.querySelector(".tab.active")?.dataset.tab;
   if (cur === "bookings") renderBookings();
   if (cur === "profile") renderProfile();

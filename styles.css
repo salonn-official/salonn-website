@@ -280,6 +280,11 @@ input,button{font-family:inherit}
   color:var(--text);font-size:15px}
 .sheet input:focus{outline:none;border-color:var(--gold)}
 .auth-error{color:var(--red);font-size:13px;font-weight:600}
+.or-line{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--muted-2);font-size:12px}
+.or-line::before,.or-line::after{content:"";flex:1;height:1px;background:var(--border)}
+.loc-box{display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted)}
+.loc-box svg{color:var(--gold);flex:none}
 .auth-switch{margin-top:16px;font-size:14px;color:var(--muted)}
 .link{background:none;border:none;color:var(--gold);font-weight:700;cursor:pointer;font-size:14px}
 #googleBtn{margin-top:10px}
