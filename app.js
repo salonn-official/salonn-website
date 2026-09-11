@@ -9,6 +9,11 @@ const SUPABASE_ANON =
 const PLAY_URL = "https://play.google.com/store/apps/details?id=com.salonn.salonn";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+// Did we just land back here from a Google OAuth redirect? Capture this BEFORE
+// supabase-js processes and strips the tokens from the URL.
+const OAUTH_RETURN = /[?&#](code|access_token|error|error_description)=/.test(location.href);
+function cleanUrl() { try { history.replaceState(null, "", location.pathname); } catch (_) {} }
+
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -1048,6 +1053,7 @@ async function saveCustomerLocation(uid) {
 
 // After a sign-in: returning customers go straight in; a brand-new Google
 // sign-in that still has no phone is asked to finish their profile.
+let greetedUid = null; // avoid a duplicate "Welcome" when this runs twice
 async function afterAuth(sess) {
   if (!sess) return;
   let prof = null;
@@ -1059,6 +1065,9 @@ async function afterAuth(sess) {
     renderAuthOnboard("complete", { name: prof?.full_name || sess.user.user_metadata?.full_name || "" });
   } else {
     closeAuth();
+    if (greetedUid !== sess.user.id) { greetedUid = sess.user.id; toast("Welcome to Salonn!"); }
+    const cur = document.querySelector(".tab.active")?.dataset.tab;
+    if (cur === "profile") renderProfile();
   }
 }
 
@@ -1093,14 +1102,34 @@ window.addEventListener("popstate", () => {
 });
 
 /* ── Boot ── */
-sb.auth.getSession().then(({ data }) => { session = data.session; });
+sb.auth.getSession().then(({ data }) => {
+  session = data.session;
+  // Fallback: if we came back from Google OAuth and the session is already
+  // restored, finish the login here too (in case the auth event was missed).
+  if (data.session && OAUTH_RETURN) { afterAuth(data.session); cleanUrl(); }
+});
 sb.auth.onAuthStateChange((event, s) => {
   session = s;
-  if (event === "SIGNED_IN") afterAuth(s); // returning → straight in; new Google → finish profile
+  // Finish the login when: a password login just succeeded (modal open), or we
+  // returned from a Google OAuth redirect (event can be SIGNED_IN or
+  // INITIAL_SESSION depending on timing).
+  const activeLogin = event === "SIGNED_IN" && !$("authModal").hidden;
+  const oauthBack = OAUTH_RETURN && s && (event === "SIGNED_IN" || event === "INITIAL_SESSION");
+  if (s && (activeLogin || oauthBack)) {
+    afterAuth(s);
+    if (OAUTH_RETURN) cleanUrl();
+  }
   const cur = document.querySelector(".tab.active")?.dataset.tab;
   if (cur === "bookings") renderBookings();
   if (cur === "profile") renderProfile();
 });
+
+// Surface a Google OAuth error instead of failing silently.
+if (OAUTH_RETURN) {
+  const p = new URLSearchParams((location.search.slice(1) + "&" + location.hash.slice(1)));
+  const e = p.get("error_description") || p.get("error");
+  if (e) { toast(decodeURIComponent(e).replace(/\+/g, " ")); cleanUrl(); }
+}
 
 // Sitelinks search-box entry point: /?q=term pre-fills the salon search.
 const _q = new URLSearchParams(location.search).get("q");
