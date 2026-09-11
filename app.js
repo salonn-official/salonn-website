@@ -657,8 +657,8 @@ async function renderProfile() {
   const initial = (name || "S").trim()[0].toUpperCase();
   const menu = [
     { i: MENU_ICON.app, t: "Get the Salonn app", act: () => window.open(PLAY_URL, "_blank") },
-    { i: MENU_ICON.shield, t: "Privacy Policy", act: () => window.open(SUPABASE_URL + "/functions/v1/legal?doc=privacy", "_blank") },
-    { i: MENU_ICON.doc, t: "Terms & Conditions", act: () => window.open(SUPABASE_URL + "/functions/v1/legal?doc=terms", "_blank") },
+    { i: MENU_ICON.shield, t: "Privacy Policy", act: () => openLegalSheet("privacy") },
+    { i: MENU_ICON.doc, t: "Terms & Conditions", act: () => openLegalSheet("terms") },
     { i: MENU_ICON.help, t: "Help & support", act: openHelpSheet },
   ];
   el.innerHTML = `<div class="p-top">
@@ -720,6 +720,50 @@ function openHelpSheet() {
       rows.innerHTML = contactRow("call", "Call us", phone) + contactRow("mail", "Email us", email);
     })
     .catch(() => {});
+}
+
+/* ── Terms & Privacy — rendered in-site from the legal_documents table ── */
+// Same block-formatting rules as the app's legal renderer: blank lines split
+// blocks; a block of "- " lines becomes a bullet list; a block whose first line
+// is "N. Heading" becomes a heading + paragraph; anything else is a paragraph.
+function fmtLegal(text) {
+  const out = [];
+  for (const block of String(text || "").split(/\n\n+/)) {
+    const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (!lines.length) continue;
+    if (lines.every((l) => l.startsWith("-"))) {
+      out.push("<ul>" + lines.map((l) => "<li>" + esc(l.slice(1).trim()) + "</li>").join("") + "</ul>");
+      continue;
+    }
+    if (/^\d+\.\s/.test(lines[0])) {
+      out.push("<h2>" + esc(lines[0]) + "</h2>");
+      const rest = lines.slice(1).join(" ");
+      if (rest) out.push("<p>" + esc(rest) + "</p>");
+    } else {
+      out.push("<p>" + esc(lines.join(" ")) + "</p>");
+    }
+  }
+  return out.join("");
+}
+async function openLegalSheet(slug) {
+  const fallbackTitle = slug === "terms" ? "Terms & Conditions" : "Privacy Policy";
+  openSheet(`
+    <button class="sheet-close" onclick="closeSheet()">✕</button>
+    <div class="legal-sheet">
+      <h3 id="legalTitle">${fallbackTitle}</h3>
+      <div class="legal-body" id="legalBody"><p class="muted">Loading…</p></div>
+    </div>`);
+  try {
+    const { data } = await sb.from("legal_documents").select("title,body,updated_at").eq("slug", slug).maybeSingle();
+    if ($("legalTitle") && data?.title) $("legalTitle").textContent = data.title;
+    const upd = data?.updated_at ? new Date(data.updated_at).toISOString().slice(0, 10) : "";
+    const body = fmtLegal(data?.body);
+    const el = $("legalBody"); if (!el) return;
+    el.innerHTML = (upd ? `<div class="legal-updated">Last updated: ${upd}</div>` : "") +
+      (body || "<p class='muted'>This document is being finalised. Please check back soon.</p>");
+  } catch (_) {
+    if ($("legalBody")) $("legalBody").innerHTML = "<p class='muted'>Couldn't load right now. Please try again.</p>";
+  }
 }
 
 function gate(icon, title, sub) {

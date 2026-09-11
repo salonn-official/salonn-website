@@ -166,8 +166,9 @@ input,button{font-family:inherit}
 .help-sheet{text-align:left}
 .help-sheet h3{font-size:20px}
 .help-sub{font-size:13px;line-height:1.45;margin:8px 0 18px}
-.contact-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;
+.contact-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;text-decoration:none;
   background:var(--surface-2);border:1px solid var(--border);color:var(--text);margin-bottom:12px}
+.contact-row b,.contact-row small{text-decoration:none}
 .contact-row:active{transform:scale(.99)}
 .cr-ico{width:40px;height:40px;flex:none;border-radius:11px;background:rgba(255,215,0,.12);
   color:var(--gold);display:grid;place-items:center}
@@ -175,6 +176,17 @@ input,button{font-family:inherit}
 .cr-body b{font-size:14px;font-weight:700}
 .cr-body small{font-size:12.5px;color:var(--muted-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cr-arr{color:var(--muted-2);flex:none}
+
+/* Terms & Privacy sheet */
+.legal-sheet{text-align:left}
+.legal-sheet h3{font-size:20px;margin-bottom:4px}
+.legal-updated{color:var(--muted-2);font-size:12px;margin-bottom:14px}
+.legal-body{max-height:64vh;overflow-y:auto;padding-right:4px}
+.legal-body h2{font-family:'Space Grotesk';font-size:15px;letter-spacing:-.2px;color:var(--text);margin:18px 0 6px}
+.legal-body h2:first-child{margin-top:0}
+.legal-body p{font-size:13.5px;line-height:1.6;color:var(--muted);margin-bottom:10px}
+.legal-body ul{padding-left:18px;margin:0 0 10px}
+.legal-body li{font-size:13.5px;line-height:1.55;color:var(--muted);margin-bottom:5px}
 .info-card{text-align:center;padding:40px 22px;background:var(--surface);border:1px solid var(--border);border-radius:20px;margin-top:20px}
 .info-card .big-emoji{font-size:40px}
 .info-card h3{margin:14px 0 6px;font-size:20px}
