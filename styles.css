@@ -388,3 +388,4 @@ html,body{overflow:hidden} /* the app's own .scroll areas handle scrolling */
   color:var(--text);font-weight:700;font-size:12.5px;cursor:pointer}
 .slot:disabled{opacity:.3;cursor:not-allowed}
 .slot.on{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.slot-msg{grid-column:1/-1;text-align:center;color:var(--muted);font-size:13px;font-weight:600;padding:22px 8px}

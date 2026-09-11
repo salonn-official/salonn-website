@@ -409,26 +409,54 @@ function openBookingSheet(s) {
     const chip = document.createElement("button");
     chip.className = "day-chip" + (i === 0 ? " on" : "");
     chip.innerHTML = `<small>${i === 0 ? "Today" : d.toLocaleDateString(undefined, { weekday: "short" })}</small><b>${d.getDate()}</b><small>${d.toLocaleDateString(undefined, { month: "short" })}</small>`;
-    chip.onclick = () => { selDate = d; dayRow.querySelectorAll(".day-chip").forEach((c) => c.classList.toggle("on", c === chip)); buildSlots(); };
+    chip.onclick = () => { selDate = d; dayRow.querySelectorAll(".day-chip").forEach((c) => c.classList.toggle("on", c === chip)); loadSlots(); };
     dayRow.appendChild(chip);
   }
 
-  function buildSlots() {
-    const grid = $("slotGrid"); grid.innerHTML = ""; selTime = null;
+  const pad = (n) => String(n).padStart(2, "0");
+  const hourOf = (hms, fb) => { if (!hms) return fb; const h = parseInt(String(hms).split(":")[0], 10); return isNaN(h) ? fb : h; };
+
+  // Fetch the salon's REAL opening hours + booked slots for the chosen day,
+  // then render only the genuinely-available times (app-accurate).
+  async function loadSlots() {
+    selTime = null;
+    const grid = $("slotGrid");
+    grid.innerHTML = `<div class="slot-msg">Loading times…</div>`;
+    const dayStr = `${selDate.getFullYear()}-${pad(selDate.getMonth() + 1)}-${pad(selDate.getDate())}`;
+    let av = null;
+    try { const { data } = await sb.rpc("salon_day_availability", { p_salon_id: s.id, p_day: dayStr }); av = data; } catch (_) {}
+    renderSlots(av || {});
+  }
+
+  function renderSlots(av) {
+    const grid = $("slotGrid"); grid.innerHTML = "";
+    if (av.is_open === false) { grid.innerHTML = `<div class="slot-msg">Closed on this day.</div>`; return; }
+    const openH = hourOf(av.open_at, 9), closeH = hourOf(av.close_at, 20);
+    const hasBreak = av.has_break === true;
+    const bs = hasBreak ? hourOf(av.break_start, null) : null;
+    const be = hasBreak ? hourOf(av.break_end, null) : null;
+    const staff = (av.staff_count && av.staff_count > 0) ? av.staff_count : 1;
+    const busy = (av.busy || []).map((b) => { const st = new Date(b.start).getTime(); return { start: st, end: st + ((b.minutes || 30) * 60000) }; });
     const cutoff = Date.now() + 30 * 60000; // at least 30 min ahead
-    for (let h = 9; h <= 20; h++) {
+    let anyFree = false;
+    for (let h = openH; h < closeH; h++) {
+      if (bs != null && be != null && h >= bs && h < be) continue; // lunch/break
       for (const m of [0, 30]) {
-        if (h === 20 && m === 30) continue;
         const t = new Date(selDate); t.setHours(h, m, 0, 0);
+        const tm = t.getTime(), tEnd = tm + 30 * 60000;
+        const overlapping = busy.filter((b) => tm < b.end && tEnd > b.start).length;
+        const disabled = tm < cutoff || overlapping >= staff; // past or fully booked
         const b = document.createElement("button");
-        b.className = "slot"; b.disabled = t.getTime() < cutoff;
+        b.className = "slot"; b.disabled = disabled;
         b.textContent = t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
         b.onclick = () => { selTime = t; grid.querySelectorAll(".slot").forEach((x) => x.classList.remove("on")); b.classList.add("on"); };
         grid.appendChild(b);
+        if (!disabled) anyFree = true;
       }
     }
+    if (!grid.children.length || !anyFree) grid.innerHTML = `<div class="slot-msg">No free slots on this day — try another day.</div>`;
   }
-  buildSlots();
+  loadSlots();
 
   $("bkPay").onclick = () => {
     if (!selTime) { const e = $("bkErr"); e.textContent = "Please pick a time slot."; e.hidden = false; return; }
