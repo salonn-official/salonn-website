@@ -51,9 +51,11 @@ function show(tab) {
 }
 document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => show(b.dataset.tab)));
 
+/* ── Splash: play the intro, then reveal the app ── */
+setTimeout(() => { const sp = $("splash"); if (sp) sp.classList.add("hide"); }, 2600);
+
 /* ── Location + salons ── */
 $("locBtn").addEventListener("click", askLocation);
-$("getAppTop").addEventListener("click", () => window.open(PLAY_URL, "_blank"));
 
 function askLocation() {
   if (!navigator.geolocation) { loadSalons(); return; }

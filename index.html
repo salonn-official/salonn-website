@@ -10,21 +10,31 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=15" />
+  <link rel="stylesheet" href="styles.css?v=16" />
 </head>
 <body>
+  <!-- Splash screen (matches the Salonn app: gold ground, dark tile + wordmark) -->
+  <div id="splash" class="splash">
+    <div class="sp-center">
+      <div class="sp-logo">S</div>
+      <div class="sp-word">
+        <span style="--i:0">S</span><span style="--i:1">a</span><span style="--i:2">l</span><span style="--i:3">o</span><span style="--i:4">n</span><span style="--i:5">n</span>
+      </div>
+      <div class="sp-tag">Book beauty, effortlessly.</div>
+    </div>
+    <div class="sp-ver">SALONN · salonn.hair</div>
+  </div>
+
   <div class="app">
 
     <!-- ─────────── HOME ─────────── -->
     <section class="screen" id="screen-home">
       <header class="app-head">
-        <button class="loc" id="locBtn">
+        <div class="hbrand"><span class="brand-mark small">S</span><b>Salonn</b></div>
+        <button class="loc loc-right" id="locBtn">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>
           <span><small>Your location</small><b id="locLabel">Enable location</b></span>
           <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
-        </button>
-        <button class="bell" id="getAppTop" title="Get the app">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17 4H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm-5 15a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm5-4H7V6h10Z"/></svg>
         </button>
       </header>
 
@@ -131,6 +141,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  <script src="app.js?v=15"></script>
+  <script src="app.js?v=16"></script>
 </body>
 </html>
