@@ -446,21 +446,25 @@ function openBookingSheet(s) {
     return (av.busy || []).map((b) => { const st = new Date(b.start).getTime(); return { start: st, end: st + ((b.minutes || 30) * 60000) }; });
   }
   function dateFor(hhmm) { const [h, m] = hhmm.split(":").map(Number); const t = new Date(selDate); t.setHours(h, m, 0, 0); return t; }
+  // Exact break window on the selected day (uses HH:MM, not just the hour).
+  function timeOn(hms) { if (!hms) return null; const p = String(hms).split(":"); const t = new Date(selDate); t.setHours(+p[0] || 0, +p[1] || 0, 0, 0); return t; }
 
   function isSlotAvailable(hhmm, busy) {
     if (av.is_open === false) return false;
     const openH = hourOf(av.open_at, 9), closeH = hourOf(av.close_at, 20);
     const h = parseInt(hhmm.split(":")[0], 10);
     if (h < openH || h >= closeH) return false;
-    if (av.has_break === true) {
-      const bs = hourOf(av.break_start, null), be = hourOf(av.break_end, null);
-      if (bs != null && be != null && h >= bs && h < be) return false;
-    }
     const start = dateFor(hhmm);
     if (selOffset === 0 && start.getTime() < Date.now() + 15 * 60000) return false; // past (15-min buffer)
     const end = new Date(start.getTime() + dur * 60000);
     const close = new Date(selDate); close.setHours(closeH, 0, 0, 0);
     if (end.getTime() > close.getTime()) return false; // service must fit before closing
+    // Never offer a slot whose service touches the break — not even one that
+    // starts before the break but runs into it.
+    if (av.has_break === true) {
+      const bStart = timeOn(av.break_start), bEnd = timeOn(av.break_end);
+      if (bStart && bEnd && start.getTime() < bEnd.getTime() && bStart.getTime() < end.getTime()) return false;
+    }
     const staff = (av.staff_count && av.staff_count > 0) ? av.staff_count : 1;
     let clashes = 0;
     for (const b of busy) { if (start.getTime() < b.end && b.start < end.getTime()) clashes++; }
