@@ -969,5 +969,9 @@ sb.auth.onAuthStateChange((_e, s) => {
   if (cur === "profile") renderProfile();
 });
 
-loadSalons();   // show salons immediately
+// Sitelinks search-box entry point: /?q=term pre-fills the salon search.
+const _q = new URLSearchParams(location.search).get("q");
+if (_q) { const si = $("searchInput"); if (si) si.value = _q; }
+
+loadSalons();   // show salons immediately (applies ?q= filter if present)
 askLocation();  // auto-trigger the browser's native location permission prompt
