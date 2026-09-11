@@ -643,15 +643,23 @@ async function renderBookings() {
 }
 
 /* ── Profile ── */
+// Clean line icons (no emojis) for the profile menu rows.
+const MENU_ICON = {
+  app: `<svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor"><path d="M17 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Zm-5 19a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4ZM17 17H7V5h10Z"/></svg>`,
+  shield: `<svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Zm-1 13-3.5-3.5 1.4-1.4L11 12.2l4.1-4.1 1.4 1.4L11 15Z"/></svg>`,
+  doc: `<svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor"><path d="M6 2h7l5 5v15H6V2Zm7 1.5V7h3.5L13 3.5ZM8.5 11h7v1.6h-7V11Zm0 3.4h7V16h-7v-1.6Z"/></svg>`,
+  help: `<svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor"><path d="M12 2a9 9 0 0 0-9 9v5.5A2.5 2.5 0 0 0 5.5 19H7v-7H5.2A6.8 6.8 0 0 1 18.8 12H17v7h1.5a2.5 2.5 0 0 0 2.5-2.5V11a9 9 0 0 0-9-9Z"/></svg>`,
+};
+
 async function renderProfile() {
   const el = $("profileBody");
   const name = session?.user?.user_metadata?.full_name || (session ? session.user.email.split("@")[0] : "Guest");
   const initial = (name || "S").trim()[0].toUpperCase();
   const menu = [
-    { i: "▸", t: "Get the Salonn app", act: () => window.open(PLAY_URL, "_blank") },
-    { i: "🛡", t: "Privacy Policy", act: () => window.open(SUPABASE_URL + "/functions/v1/legal?doc=privacy", "_blank") },
-    { i: "📄", t: "Terms & Conditions", act: () => window.open(SUPABASE_URL + "/functions/v1/legal?doc=terms", "_blank") },
-    { i: "✉", t: "Help & support", act: () => (location.href = "mailto:support.salonn@gmail.com") },
+    { i: MENU_ICON.app, t: "Get the Salonn app", act: () => window.open(PLAY_URL, "_blank") },
+    { i: MENU_ICON.shield, t: "Privacy Policy", act: () => window.open(SUPABASE_URL + "/functions/v1/legal?doc=privacy", "_blank") },
+    { i: MENU_ICON.doc, t: "Terms & Conditions", act: () => window.open(SUPABASE_URL + "/functions/v1/legal?doc=terms", "_blank") },
+    { i: MENU_ICON.help, t: "Help & support", act: openHelpSheet },
   ];
   el.innerHTML = `<div class="p-top">
       <div class="avatar">${esc(initial)}</div>
@@ -661,8 +669,8 @@ async function renderProfile() {
     </div>
     <div class="menu">
       ${menu.map((m, k) => `<div class="mi" data-mi="${k}"><span class="ico">${m.i}</span>${m.t}<span class="arr">›</span></div>`).join("")}
-      ${session ? `<div class="mi danger" id="pLogout"><span class="ico">⏻</span>Log out<span class="arr">›</span></div>` : ""}
     </div>
+    ${session ? `<button class="btn logout-btn" id="pLogout">Log out</button>` : ""}
     <div class="social" id="pSocial">
       <a data-s="instagram" aria-label="Instagram" href="#">${SOCIAL_SVG.instagram}</a>
       <a data-s="facebook" aria-label="Facebook" href="#">${SOCIAL_SVG.facebook}</a>
@@ -675,6 +683,43 @@ async function renderProfile() {
   if ($("pLogin")) $("pLogin").addEventListener("click", () => openAuth("login"));
   if ($("pLogout")) $("pLogout").addEventListener("click", async () => { await sb.auth.signOut(); toast("Logged out"); });
   applySocial(el);
+}
+
+/* ── Help & support — a 1:1 clone of the app's Call/Email sheet ── */
+const SUPPORT_PHONE_FALLBACK = "+917381204652";
+const SUPPORT_EMAIL_FALLBACK = "support.salonn@gmail.com";
+const HELP_ICON = {
+  call: `<svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor"><path d="M6.6 10.8a15.5 15.5 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.4c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .8-.3 1l-2.1 2.2Z"/></svg>`,
+  mail: `<svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor"><path d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm9 7 8-5H4l8 5Zm0 2L4 9v8h16V9l-8 5Z"/></svg>`,
+};
+function contactRow(kind, label, value) {
+  const href = kind === "call" ? "tel:" + value : "mailto:" + value + "?subject=Salonn%20Support";
+  return `<a class="contact-row" href="${href}">
+    <span class="cr-ico">${HELP_ICON[kind]}</span>
+    <span class="cr-body"><b>${label}</b><small>${esc(value)}</small></span>
+    <svg class="cr-arr" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8.6 5 15.6 12l-7 7-1.5-1.4L12.7 12 7.1 6.4z"/></svg>
+  </a>`;
+}
+function openHelpSheet() {
+  openSheet(`
+    <button class="sheet-close" onclick="closeSheet()">✕</button>
+    <div class="help-sheet">
+      <h3>Help &amp; support</h3>
+      <p class="muted help-sub">Questions, feedback or trouble with a booking? Call or email us and we’ll help you out.</p>
+      <div id="helpRows">
+        ${contactRow("call", "Call us", SUPPORT_PHONE_FALLBACK)}
+        ${contactRow("mail", "Email us", SUPPORT_EMAIL_FALLBACK)}
+      </div>
+    </div>`);
+  // Swap in the live (superadmin-editable) contacts once fetched.
+  sb.from("support_contacts").select("phone,email").eq("audience", "customer").maybeSingle()
+    .then(({ data }) => {
+      const rows = $("helpRows"); if (!rows) return;
+      const phone = (data?.phone || "").trim() || SUPPORT_PHONE_FALLBACK;
+      const email = (data?.email || "").trim() || SUPPORT_EMAIL_FALLBACK;
+      rows.innerHTML = contactRow("call", "Call us", phone) + contactRow("mail", "Email us", email);
+    })
+    .catch(() => {});
 }
 
 function gate(icon, title, sub) {

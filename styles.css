@@ -152,9 +152,29 @@ input,button{font-family:inherit}
 .menu{margin-top:20px;display:flex;flex-direction:column;gap:2px}
 .mi{display:flex;align-items:center;gap:14px;padding:15px 14px;background:var(--surface);border:1px solid var(--border);
   border-radius:14px;color:var(--text);cursor:pointer;font-weight:600;font-size:15px}
-.mi .ico{width:22px;text-align:center;color:var(--gold)}
+.mi .ico{width:22px;color:var(--gold);display:grid;place-items:center}
+.mi .ico svg{display:block}
 .mi .arr{margin-left:auto;color:var(--muted-2)}
 .mi.danger{color:var(--red)} .mi.danger .ico{color:var(--red)}
+
+/* Logout — a standalone red button (no chevron / icon row) */
+.logout-btn{width:100%;margin-top:16px;background:rgba(255,77,77,.09);color:var(--red);
+  border:1px solid rgba(255,77,77,.4);font-weight:700}
+.logout-btn:hover{background:rgba(255,77,77,.16)}
+
+/* Help & support sheet — app-style Call / Email rows */
+.help-sheet{text-align:left}
+.help-sheet h3{font-size:20px}
+.help-sub{font-size:13px;line-height:1.45;margin:8px 0 18px}
+.contact-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;
+  background:var(--surface-2);border:1px solid var(--border);color:var(--text);margin-bottom:12px}
+.contact-row:active{transform:scale(.99)}
+.cr-ico{width:40px;height:40px;flex:none;border-radius:11px;background:rgba(255,215,0,.12);
+  color:var(--gold);display:grid;place-items:center}
+.cr-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cr-body b{font-size:14px;font-weight:700}
+.cr-body small{font-size:12.5px;color:var(--muted-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr-arr{color:var(--muted-2);flex:none}
 .info-card{text-align:center;padding:40px 22px;background:var(--surface);border:1px solid var(--border);border-radius:20px;margin-top:20px}
 .info-card .big-emoji{font-size:40px}
 .info-card h3{margin:14px 0 6px;font-size:20px}
