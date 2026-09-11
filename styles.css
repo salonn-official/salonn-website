@@ -203,9 +203,15 @@ input,button{font-family:inherit}
 .info-card .big-emoji{font-size:40px}
 .info-card h3{margin:14px 0 6px;font-size:20px}
 .social{display:flex;justify-content:center;gap:14px;margin:26px 0 10px}
-.social a{width:44px;height:44px;border-radius:50%;background:var(--surface);border:1px solid var(--border);
-  color:var(--muted);display:grid;place-items:center;font-weight:700;font-size:17px}
-.social a:hover{color:var(--gold);border-color:var(--gold)}
+.social a{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:0;
+  border:1px solid transparent;transition:transform .12s,filter .12s}
+.social a svg{width:22px;height:22px}
+.social a:hover{transform:translateY(-2px);filter:brightness(1.08)}
+.social a[data-s="instagram"]{background:radial-gradient(circle at 30% 107%,#feda75,#fa7e1e 24%,#d62976 52%,#962fbf 78%,#4f5bd5)}
+.social a[data-s="facebook"]{background:#1877F2}
+.social a[data-s="x"]{background:#000;border-color:#333}
+.social a[data-s="youtube"]{background:#FF0000}
+.social a.nolink{pointer-events:none}   /* no link set yet → not clickable, still branded */
 
 /* ── Buttons ── */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;border:none;
@@ -284,19 +290,24 @@ input,button{font-family:inherit}
 .rev-media img{width:76px;height:76px;border-radius:12px;object-fit:cover;flex:none;background:var(--surface-2);cursor:pointer}
 
 /* ── Reel / post viewer ── */
-.reelview{position:fixed;inset:0;z-index:80;background:#000;display:flex;flex-direction:column;
-  align-items:center;justify-content:center}
+.reelview{position:fixed;inset:0;z-index:80;background:#000}
 .reelview[hidden]{display:none!important}
-.rv-close{position:absolute;top:calc(14px + env(safe-area-inset-top));left:14px;z-index:3;width:40px;height:40px;
+.rv-close{position:absolute;top:calc(14px + env(safe-area-inset-top));left:14px;z-index:5;width:40px;height:40px;
   border-radius:50%;background:rgba(0,0,0,.5);border:none;color:#fff;font-size:16px;cursor:pointer;backdrop-filter:blur(4px)}
-.rv-stage{position:relative;width:100%;max-width:440px;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.rv-stage img,.rv-stage video{max-width:100%;max-height:100%;object-fit:contain}
-.rv-arrow{position:absolute;top:0;bottom:0;width:40%;background:none;border:none;cursor:pointer;z-index:2}
+/* Vertical scroll-snap feed — swipe up/down between posts, like Instagram */
+.rv-feed{height:100%;width:100%;max-width:440px;margin:0 auto;overflow-y:scroll;overflow-x:hidden;
+  scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.rv-feed::-webkit-scrollbar{display:none}
+.rv-slide{position:relative;height:100%;scroll-snap-align:start;scroll-snap-stop:always;
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+.rv-media{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.rv-media img,.rv-media video{max-width:100%;max-height:100%;object-fit:contain}
+.rv-arrow{position:absolute;top:15%;bottom:25%;width:40%;background:none;border:none;cursor:pointer;z-index:2}
 .rv-arrow.l{left:0} .rv-arrow.r{right:0}
 .rv-dots{position:absolute;bottom:104px;left:0;right:0;display:flex;justify-content:center;gap:5px;z-index:3}
 .rv-dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5)}
 .rv-dots i.on{width:16px;border-radius:4px;background:#fff}
-.rv-info{position:absolute;left:0;right:0;bottom:0;max-width:440px;margin:0 auto;padding:18px 18px calc(24px + env(safe-area-inset-bottom));
+.rv-info{position:absolute;left:0;right:0;bottom:0;padding:18px 18px calc(24px + env(safe-area-inset-bottom));
   background:linear-gradient(transparent,rgba(0,0,0,.85));color:#fff;z-index:3}
 .rv-salon{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px}
 .rv-salon .bk{margin-left:auto;background:var(--gold);color:var(--ink);border:none;border-radius:999px;
@@ -369,10 +380,6 @@ html,body{overflow:hidden} /* the app's own .scroll areas handle scrolling */
 .tb-brand{display:none;align-items:center;gap:9px;color:var(--text);
   font-family:'Space Grotesk';font-weight:700;font-size:19px;text-decoration:none}
 @media(min-width:820px){ .tb-brand{display:flex;margin-right:auto;padding-left:4px} }
-
-/* ── Clear social brand icons ── */
-.social a svg{width:20px;height:20px}
-.social a{font-size:0}
 
 /* ── Keep navigation visible on the salon detail ── */
 /* Phone: leave the bottom tab bar visible (book bar sits just above it) */

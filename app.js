@@ -214,22 +214,31 @@ $("cats").querySelectorAll(".chip").forEach((b) => b.addEventListener("click", (
 }));
 
 /* ── Explore / reels ── */
+let allReels = [];
 async function loadReels() {
   const g = $("reelGrid");
   const { data, error } = await sb.from("reels")
     .select("id,salon_id,media_type,image_urls,video_url,caption,like_count,views,salon:salons(name,image_url,status,area,city,rating,latitude,longitude,address)")
-    .order("created_at", { ascending: false }).limit(40);
+    .order("created_at", { ascending: false }).limit(60);
   if (error || !data) { g.innerHTML = `<div class="empty">Couldn't load reels.</div>`; return; }
-  const rows = data.filter((r) => r.salon && r.salon.status === "approved");
+  allReels = data.filter((r) => r.salon && r.salon.status === "approved");
   reelsLoaded = true;
-  if (!rows.length) { g.innerHTML = `<div class="empty">No reels yet.</div>`; return; }
+  renderReelGrid();
+}
+// Explore grid — filtered by the search box (salon name / caption).
+function renderReelGrid() {
+  const g = $("reelGrid");
+  if (!allReels.length) { g.innerHTML = `<div class="empty">No reels yet.</div>`; return; }
+  const q = ($("reelSearch")?.value || "").trim().toLowerCase();
+  const rows = q
+    ? allReels.filter((r) => (r.salon?.name || "").toLowerCase().includes(q) || (r.caption || "").toLowerCase().includes(q))
+    : allReels;
+  if (!rows.length) { g.innerHTML = `<div class="empty">No salons match “${esc(q)}”.</div>`; return; }
   g.innerHTML = "";
   for (const r of rows) {
     const thumb = (r.image_urls && r.image_urls[0]) || r.salon?.image_url;
     const isPost = (r.media_type || "").toLowerCase() !== "video";
-    const badge = isPost
-      ? ((r.image_urls || []).length > 1 ? "▦" : "▣")
-      : "▶";
+    const badge = isPost ? ((r.image_urls || []).length > 1 ? "▦" : "▣") : "▶";
     const div = document.createElement("div");
     div.className = "reel";
     div.innerHTML = `${thumb ? `<img src="${esc(thumb)}" loading="lazy">` : ""}<div class="ov"></div>
@@ -239,49 +248,83 @@ async function loadReels() {
     g.appendChild(div);
   }
 }
+$("reelSearch").addEventListener("input", renderReelGrid);
 
-/* ── Reel / post viewer (swipeable image posts + video reels) ── */
-function openReel(r) {
-  const imgs = (r.image_urls && r.image_urls.length) ? r.image_urls
-    : (r.salon?.image_url ? [r.salon.image_url] : []);
+/* ── Reel viewer: vertical scroll feed (swipe up/down like Instagram) ── */
+let reelIO = null;
+function openReel(startReel) {
+  const feed = $("rvFeed");
+  feed.innerHTML = "";
+  const list = allReels.length ? allReels : [startReel];
+  const startIdx = Math.max(0, list.findIndex((x) => x.id === startReel.id));
+  for (const r of list) feed.appendChild(buildReelSlide(r));
+  $("reelViewer").hidden = false;
+  requestAnimationFrame(() => {
+    const slide = feed.children[startIdx];
+    if (slide) feed.scrollTop = slide.offsetTop; // start on the tapped post
+    observeReelVideos(feed);
+  });
+}
+// One full-screen post: media (image carousel or video) + info overlay.
+function buildReelSlide(r) {
+  const imgs = (r.image_urls && r.image_urls.length) ? r.image_urls : (r.salon?.image_url ? [r.salon.image_url] : []);
   const isVideo = (r.media_type || "").toLowerCase() === "video" && r.video_url;
+  const slide = document.createElement("div"); slide.className = "rv-slide";
+  const media = document.createElement("div"); media.className = "rv-media";
+  const dots = document.createElement("div"); dots.className = "rv-dots";
   let i = 0;
-  const stage = $("rvStage"), dots = $("rvDots");
-
   function paint() {
     if (isVideo) {
-      stage.innerHTML = `<video src="${esc(r.video_url)}" autoplay loop playsinline controls></video>`;
+      media.innerHTML = `<video src="${esc(r.video_url)}" loop muted playsinline></video>`;
       dots.innerHTML = "";
     } else {
-      stage.innerHTML = `<img src="${esc(imgs[i] || "")}">
-        ${imgs.length > 1 ? `<button class="rv-arrow l"></button><button class="rv-arrow r"></button>` : ""}`;
+      media.innerHTML = `<img src="${esc(imgs[i] || "")}">
+        ${imgs.length > 1 ? `<button class="rv-arrow l" aria-label="Previous"></button><button class="rv-arrow r" aria-label="Next"></button>` : ""}`;
       dots.innerHTML = imgs.map((_, k) => `<i class="${k === i ? "on" : ""}"></i>`).join("");
-      const l = stage.querySelector(".rv-arrow.l"), rr = stage.querySelector(".rv-arrow.r");
-      if (l) l.onclick = () => { i = (i - 1 + imgs.length) % imgs.length; paint(); };
-      if (rr) rr.onclick = () => { i = (i + 1) % imgs.length; paint(); };
+      const l = media.querySelector(".rv-arrow.l"), rr = media.querySelector(".rv-arrow.r");
+      if (l) l.onclick = (e) => { e.stopPropagation(); i = (i - 1 + imgs.length) % imgs.length; paint(); };
+      if (rr) rr.onclick = (e) => { e.stopPropagation(); i = (i + 1) % imgs.length; paint(); };
     }
   }
   paint();
+  // Horizontal swipe between a post's images (vertical scroll still moves posts).
+  let sx = 0, sy = 0;
+  media.addEventListener("touchstart", (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  media.addEventListener("touchend", (e) => {
+    if (isVideo || imgs.length < 2) return;
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+      i = dx < 0 ? (i + 1) % imgs.length : (i - 1 + imgs.length) % imgs.length;
+      paint();
+    }
+  }, { passive: true });
 
-  $("rvInfo").innerHTML = `
-    <div class="rv-salon">${esc(r.salon?.name || "Salon")}
-      <button class="bk" id="rvBook">Book</button></div>
+  const info = document.createElement("div"); info.className = "rv-info";
+  info.innerHTML = `
+    <div class="rv-salon">${esc(r.salon?.name || "Salon")}<button class="bk">Book</button></div>
     ${r.caption ? `<div class="rv-cap">${esc(r.caption)}</div>` : ""}
     <div class="rv-likes">❤ ${r.like_count || 0} · ${r.views || 0} views</div>`;
-  $("rvBook").onclick = () => { closeReel(); if (r.salon) openSalon({ id: r.salon_id, ...r.salon }); };
-  $("reelViewer").hidden = false;
+  info.querySelector(".bk").onclick = () => { closeReel(); if (r.salon) openSalon({ id: r.salon_id, ...r.salon }); };
 
-  // Swipe (touch) between post images.
-  let sx = 0;
-  stage.ontouchstart = (e) => (sx = e.touches[0].clientX);
-  stage.ontouchend = (e) => {
-    if (isVideo || imgs.length < 2) return;
-    const dx = e.changedTouches[0].clientX - sx;
-    if (dx < -40) { i = (i + 1) % imgs.length; paint(); }
-    else if (dx > 40) { i = (i - 1 + imgs.length) % imgs.length; paint(); }
-  };
+  slide.append(media, dots, info);
+  return slide;
 }
-function closeReel() { $("rvStage").innerHTML = ""; $("reelViewer").hidden = true; }
+// Play only the post that's on screen; pause the others.
+function observeReelVideos(feed) {
+  if (reelIO) reelIO.disconnect();
+  reelIO = new IntersectionObserver((entries) => {
+    for (const en of entries) {
+      const v = en.target.querySelector("video"); if (!v) continue;
+      if (en.isIntersecting && en.intersectionRatio > 0.6) v.play().catch(() => {});
+      else v.pause();
+    }
+  }, { root: feed, threshold: [0, 0.6, 1] });
+  feed.querySelectorAll(".rv-slide").forEach((s) => reelIO.observe(s));
+}
+function closeReel() {
+  if (reelIO) { reelIO.disconnect(); reelIO = null; }
+  $("rvFeed").innerHTML = ""; $("reelViewer").hidden = true;
+}
 $("rvClose").addEventListener("click", closeReel);
 
 /* ── Salon detail ── */
@@ -753,10 +796,10 @@ async function renderProfile() {
     </div>
     ${session ? `<button class="btn logout-btn" id="pLogout">Log out</button>` : ""}
     <div class="social" id="pSocial">
-      <a data-s="instagram" aria-label="Instagram" href="#">${SOCIAL_SVG.instagram}</a>
-      <a data-s="facebook" aria-label="Facebook" href="#">${SOCIAL_SVG.facebook}</a>
-      <a data-s="x" aria-label="X" href="#">${SOCIAL_SVG.x}</a>
-      <a data-s="youtube" aria-label="YouTube" href="#">${SOCIAL_SVG.youtube}</a>
+      <a data-s="instagram" class="nolink" aria-label="Instagram">${SOCIAL_SVG.instagram}</a>
+      <a data-s="facebook" class="nolink" aria-label="Facebook">${SOCIAL_SVG.facebook}</a>
+      <a data-s="x" class="nolink" aria-label="X">${SOCIAL_SVG.x}</a>
+      <a data-s="youtube" class="nolink" aria-label="YouTube">${SOCIAL_SVG.youtube}</a>
     </div>
     <div class="muted small" style="text-align:center;padding-bottom:8px">Salonn · salonn.hair</div>
     <div class="pad"></div>`;
@@ -788,17 +831,15 @@ function openHelpSheet() {
       <h3>Help &amp; support</h3>
       <p class="muted help-sub">Questions, feedback or trouble with a booking? Call or email us and we’ll help you out.</p>
       <div id="helpRows">
-        ${contactRow("call", "Call us", SUPPORT_PHONE_FALLBACK)}
         ${contactRow("mail", "Email us", SUPPORT_EMAIL_FALLBACK)}
       </div>
     </div>`);
-  // Swap in the live (superadmin-editable) contacts once fetched.
-  sb.from("support_contacts").select("phone,email").eq("audience", "customer").maybeSingle()
+  // Swap in the live (superadmin-editable) email once fetched.
+  sb.from("support_contacts").select("email").eq("audience", "customer").maybeSingle()
     .then(({ data }) => {
       const rows = $("helpRows"); if (!rows) return;
-      const phone = (data?.phone || "").trim() || SUPPORT_PHONE_FALLBACK;
       const email = (data?.email || "").trim() || SUPPORT_EMAIL_FALLBACK;
-      rows.innerHTML = contactRow("call", "Call us", phone) + contactRow("mail", "Email us", email);
+      rows.innerHTML = contactRow("mail", "Email us", email);
     })
     .catch(() => {});
 }
@@ -891,8 +932,31 @@ $("googleBtn").addEventListener("click", () => sb.auth.signInWithOAuth({ provide
 let socialCache = null;
 async function applySocial(root) {
   if (!socialCache) { const { data } = await sb.from("app_social").select("*").eq("id", 1).maybeSingle(); socialCache = data || {}; }
-  root.querySelectorAll("[data-s]").forEach((a) => { const u = socialCache[a.dataset.s]; if (u) { a.href = u; a.target = "_blank"; a.rel = "noopener"; } });
+  root.querySelectorAll("[data-s]").forEach((a) => {
+    const u = (socialCache[a.dataset.s] || "").trim();
+    if (u) { a.href = u; a.target = "_blank"; a.rel = "noopener"; a.classList.remove("nolink"); }
+    else { a.removeAttribute("href"); a.classList.add("nolink"); }
+  });
 }
+
+/* ── Back-button handling ──────────────────────────────────────────────────
+ * A single-page site has only one history entry, so the browser Back button
+ * would leave the site entirely. We trap it: each Back closes the top-most open
+ * layer (sheet → auth → reel → salon detail → non-home tab) and stays in the
+ * app. Only when nothing is open on the Home tab does Back finally exit.       */
+function closeTopLayer() {
+  if (!$("sheetModal").hidden) { closeSheet(); return true; }
+  if (!$("authModal").hidden) { $("authModal").hidden = true; return true; }
+  if (!$("reelViewer").hidden) { closeReel(); return true; }
+  if (!$("screen-detail").hidden) { $("screen-detail").hidden = true; return true; }
+  const cur = document.querySelector(".tab.active")?.dataset.tab;
+  if (cur && cur !== "home") { show("home"); return true; }
+  return false; // nothing left → allow the site to close
+}
+history.pushState(null, ""); // seed one buffer entry so the first Back is caught
+window.addEventListener("popstate", () => {
+  if (closeTopLayer()) history.pushState(null, ""); // re-arm for the next Back
+});
 
 /* ── Boot ── */
 sb.auth.getSession().then(({ data }) => { session = data.session; });
