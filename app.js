@@ -1124,11 +1124,20 @@ sb.auth.onAuthStateChange((event, s) => {
   if (cur === "profile") renderProfile();
 });
 
-// Surface a Google OAuth error instead of failing silently.
+// Surface a Google OAuth error instead of failing silently. Keep it on screen
+// (and in the console + URL) so it can actually be read and diagnosed.
 if (OAUTH_RETURN) {
   const p = new URLSearchParams((location.search.slice(1) + "&" + location.hash.slice(1)));
   const e = p.get("error_description") || p.get("error");
-  if (e) { toast(decodeURIComponent(e).replace(/\+/g, " ")); cleanUrl(); }
+  if (e) {
+    const msg = decodeURIComponent(e).replace(/\+/g, " ");
+    console.error("Salonn Google sign-in error:", msg, "| URL:", location.href);
+    setTimeout(() => {
+      openAuth();
+      const el = $("authErr");
+      if (el) { el.textContent = "Google sign-in failed: " + msg; el.hidden = false; }
+    }, 400);
+  }
 }
 
 // Sitelinks search-box entry point: /?q=term pre-fills the salon search.
