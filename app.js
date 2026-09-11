@@ -20,7 +20,7 @@ const SOCIAL_SVG = {
   youtube: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23 12s0-3.2-.4-4.7a2.5 2.5 0 0 0-1.8-1.8C19.3 5.1 12 5.1 12 5.1s-7.3 0-8.8.4A2.5 2.5 0 0 0 1.4 7.3C1 8.8 1 12 1 12s0 3.2.4 4.7c.2.9.9 1.6 1.8 1.8 1.5.4 8.8.4 8.8.4s7.3 0 8.8-.4a2.5 2.5 0 0 0 1.8-1.8c.4-1.5.4-4.7.4-4.7Zm-13.2 3V9l5.2 3-5.2 3Z"/></svg>`,
 };
 let session = null, userPos = null, allSalons = [], reelsLoaded = false;
-let activeCat = "All", selectedServices = [];
+let activeCat = "All", selectedServices = [], userArea = null;
 
 /* ── Toast ── */
 let toastT;
@@ -59,12 +59,26 @@ function askLocation() {
   );
 }
 // Turn coordinates into an area name (like the app), no API key needed.
+// The resolved locality (e.g. "Hirakud") drives which salons are shown.
 async function reverseGeocode(lat, lng) {
   try {
     const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
     const j = await r.json();
-    $("locLabel").textContent = j.locality || j.city || j.principalSubdivision || "Near you";
+    userArea = j.locality || j.city || j.principalSubdivision || null;
+    $("locLabel").textContent = userArea || "Near you";
   } catch { $("locLabel").textContent = "Near you"; }
+  renderSalons(); // re-filter to the customer's area now that it's known
+}
+// Salon belongs to the customer's area — same rule as the app, which treats the
+// salon's `city` (falling back to address/area) as its area name. Substring
+// match both ways; never hide a salon whose location isn't set.
+function salonInArea(s) {
+  if (!userArea) return true;                 // area unknown → show all (app parity)
+  const sa = (s.city || s.area || s.address || "").trim().toLowerCase();
+  if (!sa) return true;                       // salon has no location → don't hide it
+  const a = userArea.trim().toLowerCase();
+  if (!a) return true;
+  return sa === a || sa.includes(a) || a.includes(sa);
 }
 function distanceKm(a, b, c, d) {
   const R = 6371, r = (x) => (x * Math.PI) / 180, dLat = r(c - a), dLng = r(d - b);
@@ -94,11 +108,23 @@ function salonCard(s) {
 function renderSalons() {
   const q = $("searchInput").value.trim().toLowerCase();
   const filtering = q || activeCat !== "All";
-  let list = allSalons.filter((s) => {
+  // Base: search + category
+  const base = allSalons.filter((s) => {
     const hay = `${s.name} ${s.area} ${s.city}`.toLowerCase();
     return (!q || hay.includes(q)) && (activeCat === "All" || hay.includes(activeCat.toLowerCase()));
   });
+  // Only salons that serve the customer's fetched area.
+  let list = base.filter(salonInArea);
   const feat = $("featured"), el = $("salonList");
+
+  // Area known, salons exist elsewhere, but none here → "We're expanding" page.
+  if (!filtering && userArea && allSalons.length && !list.length) {
+    feat.innerHTML = ""; $("count").textContent = "";
+    el.innerHTML = expandingState(userArea);
+    const again = $("expCheck"); if (again) again.addEventListener("click", askLocation);
+    return;
+  }
+
   $("count").textContent = list.length ? `${list.length} found` : "";
   if (!list.length) { feat.innerHTML = ""; el.innerHTML = `<div class="empty">No salons match. Try another search.</div>`; return; }
 
@@ -120,6 +146,18 @@ function renderSalons() {
 
   el.innerHTML = "";
   for (const s of rest) el.appendChild(salonCard(s));
+}
+// Shown when we know the customer's area but no salon serves it yet (app parity).
+function expandingState(area) {
+  return `<div class="expanding">
+    <div class="exp-ico"><svg viewBox="0 0 24 24" width="46" height="46" fill="currentColor"><path d="M13.5 2.6c2.6 1 4.6 3 5.6 5.6.8 2.2.7 4.2.2 6-.3 1-.8 2-1.5 3l1.4 3.3-3.2-1a9 9 0 0 1-3 1.2 9.4 9.4 0 0 1-2.7-.1L7 22.1l-.5-3.3a9 9 0 0 1-2.3-2.2C2.3 13.9 2 10.5 3.4 7.6a9.4 9.4 0 0 1 10.1-5ZM12 7a2.4 2.4 0 1 0 0 4.8A2.4 2.4 0 0 0 12 7Z"/></svg></div>
+    <h3 class="exp-title">We're expanding!</h3>
+    <p class="exp-sub">Salonn isn't in <b>${esc(area)}</b> yet. We're growing fast and will reach your area very soon.</p>
+    <button class="exp-btn" id="expCheck">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 5V2L8 6l4 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7Z"/></svg>
+      Check again
+    </button>
+  </div>`;
 }
 $("searchInput").addEventListener("input", renderSalons);
 
