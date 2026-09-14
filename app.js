@@ -755,8 +755,31 @@ async function createWebBooking(s, total, scheduledAt, resp) {
     toast("Paid, but the booking couldn't be saved. Email support with payment id " + resp.razorpay_payment_id);
     return;
   }
-  closeSheet(); closeDetail(); show("bookings"); toast("Booked! Payment successful 🎉");
+  closeSheet(); closeDetail();
+  const when = scheduledAt.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }) +
+    " · " + scheduledAt.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  showThankYou({ salon: s.name, service: summary, when, amount: total, paymentId: resp.razorpay_payment_id });
 }
+
+/* ── Thank-you screen (animated green tick + booking details) ── */
+function checkSvg() {
+  return `<svg class="ty-check" viewBox="0 0 52 52" aria-hidden="true">
+    <circle class="ty-circle" cx="26" cy="26" r="24"/>
+    <path class="ty-tick" d="M14 27l7 7 16-16"/>
+  </svg>`;
+}
+function showThankYou(info) {
+  $("tyBadge").innerHTML = checkSvg(); // re-inject so the draw animation replays
+  $("tyCard").innerHTML = `
+    <div class="ty-row"><span>Salon</span><b>${esc(info.salon || "Salon")}</b></div>
+    <div class="ty-row"><span>Service</span><b>${esc(info.service || "Service")}</b></div>
+    <div class="ty-row"><span>Date &amp; time</span><b>${esc(info.when)}</b></div>
+    <div class="ty-row"><span>Amount paid</span><b class="ty-amt">₹${info.amount}</b></div>
+    <div class="ty-row"><span>Payment ID</span><b class="ty-mono">${esc(info.paymentId || "—")}</b></div>`;
+  $("thankYou").hidden = false;
+}
+function closeThankYou() { $("thankYou").hidden = true; }
+$("tyDone").addEventListener("click", () => { closeThankYou(); show("bookings"); });
 
 /* ── Bookings ── */
 async function renderBookings() {
@@ -1088,6 +1111,7 @@ async function applySocial(root) {
  * layer (sheet → auth → reel → salon detail → non-home tab) and stays in the
  * app. Only when nothing is open on the Home tab does Back finally exit.       */
 function closeTopLayer() {
+  if (!$("thankYou").hidden) { closeThankYou(); show("bookings"); return true; }
   if (!$("sheetModal").hidden) { closeSheet(); return true; }
   if (!$("authModal").hidden) { $("authModal").hidden = true; return true; }
   if (!$("reelViewer").hidden) { closeReel(); return true; }
