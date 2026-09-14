@@ -13,6 +13,7 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 // supabase-js processes and strips the tokens from the URL.
 const OAUTH_RETURN = /[?&#](code|access_token|error|error_description)=/.test(location.href);
 function cleanUrl() { try { history.replaceState(null, "", location.pathname); } catch (_) {} }
+const DEFAULT_TITLE = document.title;
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -48,6 +49,10 @@ function toast(msg) {
 const screens = { home: "screen-home", explore: "screen-explore", bookings: "screen-bookings", profile: "screen-profile" };
 function show(tab) {
   for (const k in screens) $(screens[k]).hidden = k !== tab;
+  if (!$("screen-detail").hidden) { // leaving an open salon → restore title + URL
+    document.title = DEFAULT_TITLE;
+    if (location.pathname.startsWith("/s/")) { try { history.replaceState(null, "", "/"); } catch (_) {} }
+  }
   $("screen-detail").hidden = true;
   document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
   if (tab === "explore" && !reelsLoaded) loadReels();
@@ -351,6 +356,9 @@ $("rvClose").addEventListener("click", closeReel);
 async function openSalon(s) {
   selectedServices = [];
   $("screen-detail").hidden = false;
+  // Pretty URL + tab title while viewing this salon.
+  document.title = `${s.name || "Salon"} — Salonn`;
+  try { history.replaceState(null, "", `/s/${slugify(s.name)}-${s.id}`); } catch (_) {}
   const area = esc([s.area, s.city].filter(Boolean).join(", ") || "Nearby");
   const dist = s.dist != null ? ` · ${s.dist.toFixed(1)} km away` : "";
   $("detailBody").innerHTML = `
@@ -387,10 +395,19 @@ async function openSalon(s) {
   loadReviews(s.id);
 }
 
+// "Sharp Cuts & Co." → "sharp-cuts-co"
+function slugify(name) {
+  return String(name || "salon").toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "salon";
+}
+// A pretty, shareable URL that carries the name AND the id, e.g.
+// https://www.salonn.hair/s/sharp-cuts-co-9fdb9389-8e2f-47bb-a4f7-5023500d702f
+function salonLink(s) { return `${location.origin}/s/${slugify(s.name)}-${s.id}`; }
+
 // Share a direct link to this salon — native share sheet on phones, clipboard
 // on desktop. Opening the link jumps straight into this salon.
 async function shareSalon(s) {
-  const url = `${location.origin}/?salon=${encodeURIComponent(s.id)}`;
+  const url = salonLink(s);
   const data = { title: `${s.name} on Salonn`, text: `Check out ${s.name} on Salonn and book an appointment:`, url };
   if (navigator.share) {
     try { await navigator.share(data); } catch (_) {/* user cancelled */}
@@ -400,7 +417,7 @@ async function shareSalon(s) {
   }
 }
 
-// Deep link: open a specific salon by id (from a shared ?salon= link).
+// Deep link: open a specific salon by id (from a shared /s/… or ?salon= link).
 async function openSalonById(id) {
   const found = allSalons.find((x) => x.id === id);
   if (found) { openSalon(found); return; }
@@ -515,7 +532,11 @@ function timeAgo(t) {
   if (d < 2592000) return Math.floor(d / 86400) + "d ago";
   return Math.floor(d / 2592000) + "mo ago";
 }
-window.closeDetail = () => { $("screen-detail").hidden = true; };
+window.closeDetail = () => {
+  $("screen-detail").hidden = true;
+  document.title = DEFAULT_TITLE;
+  if (location.pathname.startsWith("/s/")) { try { history.replaceState(null, "", "/"); } catch (_) {} }
+};
 
 async function loadGallery(id) {
   const { data } = await sb.from("salon_images").select("url").eq("salon_id", id).order("sort_order");
@@ -1144,7 +1165,7 @@ function closeTopLayer() {
   if (!$("sheetModal").hidden) { closeSheet(); return true; }
   if (!$("authModal").hidden) { $("authModal").hidden = true; return true; }
   if (!$("reelViewer").hidden) { closeReel(); return true; }
-  if (!$("screen-detail").hidden) { $("screen-detail").hidden = true; return true; }
+  if (!$("screen-detail").hidden) { closeDetail(); return true; }
   const cur = document.querySelector(".tab.active")?.dataset.tab;
   if (cur && cur !== "home") { show("home"); return true; }
   return false; // nothing left → allow the site to close
@@ -1200,6 +1221,10 @@ if (_q) { const si = $("searchInput"); if (si) si.value = _q; }
 loadSalons();   // show salons immediately (applies ?q= filter if present)
 askLocation();  // auto-trigger the browser's native location permission prompt
 
-// Deep link: a shared /?salon=<id> link opens that salon directly.
-const _salon = new URLSearchParams(location.search).get("salon");
+// Deep link: a shared /s/<name>-<id> (or legacy /?salon=<id>) opens that salon.
+function salonIdFromUrl() {
+  const m = location.pathname.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  return m ? m[0] : new URLSearchParams(location.search).get("salon");
+}
+const _salon = salonIdFromUrl();
 if (_salon) openSalonById(_salon);
