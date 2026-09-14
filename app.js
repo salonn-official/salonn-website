@@ -356,6 +356,9 @@ async function openSalon(s) {
   $("detailBody").innerHTML = `
     <div class="d-head">
       <span class="brand-mark small">S</span><b class="d-hbrand">Salonn</b>
+      <button class="d-share" id="dShare" title="Share this salon" aria-label="Share this salon">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M18 16.1a3 3 0 0 0-2.3 1.1l-6-3.5a3 3 0 0 0 0-1.4l6-3.5A3 3 0 1 0 15 6c0 .2 0 .4.1.6L9 10.2a3 3 0 1 0 0 3.6l6.1 3.6c0 .2-.1.4-.1.6a3 3 0 1 0 3-2.5Z"/></svg>
+      </button>
       <button class="d-getapp" id="dGetApp">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M3 3.5v17c0 .8.9 1.3 1.6.9l14-8.5c.7-.4.7-1.4 0-1.8l-14-8.5C3.9 2.2 3 2.7 3 3.5Z"/></svg>
         Get app
@@ -376,11 +379,37 @@ async function openSalon(s) {
     <div class="d-note">↩️ Track your <b>refund status</b> and see <b>reschedules</b> live in the <b>Salonn app</b>.</div>`;
   $("detailPrice").textContent = "₹0";
   $("dGetApp").onclick = () => window.open(PLAY_URL, "_blank");
+  $("dShare").onclick = () => shareSalon(s);
   $("detailBook").onclick = () => bookNow(s);
   loadGallery(s.id);
   loadServices(s.id);
   loadDetailReels(s);
   loadReviews(s.id);
+}
+
+// Share a direct link to this salon — native share sheet on phones, clipboard
+// on desktop. Opening the link jumps straight into this salon.
+async function shareSalon(s) {
+  const url = `${location.origin}/?salon=${encodeURIComponent(s.id)}`;
+  const data = { title: `${s.name} on Salonn`, text: `Check out ${s.name} on Salonn and book an appointment:`, url };
+  if (navigator.share) {
+    try { await navigator.share(data); } catch (_) {/* user cancelled */}
+  } else {
+    try { await navigator.clipboard.writeText(url); toast("Link copied — share it anywhere!"); }
+    catch (_) { window.prompt("Copy this salon link:", url); }
+  }
+}
+
+// Deep link: open a specific salon by id (from a shared ?salon= link).
+async function openSalonById(id) {
+  const found = allSalons.find((x) => x.id === id);
+  if (found) { openSalon(found); return; }
+  const { data } = await sb.from("salons")
+    .select("id,name,area,city,rating,image_url,latitude,longitude,address")
+    .eq("id", id).eq("status", "approved").maybeSingle();
+  if (!data) { toast("That salon isn't available."); return; }
+  const dist = userPos && data.latitude && data.longitude ? distanceKm(userPos.lat, userPos.lng, data.latitude, data.longitude) : null;
+  openSalon({ ...data, dist });
 }
 
 // Reels & posts strip inside the salon detail (above reviews), like the app.
@@ -1170,3 +1199,7 @@ if (_q) { const si = $("searchInput"); if (si) si.value = _q; }
 
 loadSalons();   // show salons immediately (applies ?q= filter if present)
 askLocation();  // auto-trigger the browser's native location permission prompt
+
+// Deep link: a shared /?salon=<id> link opens that salon directly.
+const _salon = new URLSearchParams(location.search).get("salon");
+if (_salon) openSalonById(_salon);
