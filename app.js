@@ -364,9 +364,6 @@ async function openSalon(s) {
   $("detailBody").innerHTML = `
     <div class="d-head">
       <span class="brand-mark small">S</span><b class="d-hbrand">Salonn</b>
-      <button class="d-share" id="dShare" title="Share this salon" aria-label="Share this salon">
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M18 16.1a3 3 0 0 0-2.3 1.1l-6-3.5a3 3 0 0 0 0-1.4l6-3.5A3 3 0 1 0 15 6c0 .2 0 .4.1.6L9 10.2a3 3 0 1 0 0 3.6l6.1 3.6c0 .2-.1.4-.1.6a3 3 0 1 0 3-2.5Z"/></svg>
-      </button>
       <button class="d-getapp" id="dGetApp">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M3 3.5v17c0 .8.9 1.3 1.6.9l14-8.5c.7-.4.7-1.4 0-1.8l-14-8.5C3.9 2.2 3 2.7 3 3.5Z"/></svg>
         Get app
@@ -377,7 +374,12 @@ async function openSalon(s) {
       <div class="d-dots" id="dDots"></div>
     </div>
     <div class="d-body">
-      <div class="d-title">${esc(s.name || "Salon")}</div>
+      <div class="d-title-row">
+        <div class="d-title">${esc(s.name || "Salon")}</div>
+        <button class="d-share" id="dShare" title="Share this salon" aria-label="Share this salon">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M18 16.1a3 3 0 0 0-2.3 1.1l-6-3.5a3 3 0 0 0 0-1.4l6-3.5A3 3 0 1 0 15 6c0 .2 0 .4.1.6L9 10.2a3 3 0 1 0 0 3.6l6.1 3.6c0 .2-.1.4-.1.6a3 3 0 1 0 3-2.5Z"/></svg>
+        </button>
+      </div>
       <div class="d-row">★ <b style="color:var(--gold)">${s.rating || 0}</b> · ${area}${dist}</div>
       <div class="sec-head" style="margin-top:20px"><h2>Choose services</h2></div>
       <div id="svcList"><div class="empty">Loading services…</div></div>
