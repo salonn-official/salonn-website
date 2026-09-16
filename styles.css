@@ -267,6 +267,7 @@ input,button{font-family:inherit}
 .modal{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center;
   background:rgba(0,0,0,.7);backdrop-filter:blur(4px)}
 .modal[hidden]{display:none!important}
+.modal.top{z-index:100} /* phone prompt sits above the booking sheet */
 .sheet{background:var(--surface);border:1px solid var(--border);border-radius:26px 26px 0 0;width:100%;
   max-width:440px;padding:30px 22px calc(26px + env(safe-area-inset-bottom));text-align:center;position:relative;
   animation:up .22s ease}
@@ -281,6 +282,11 @@ input,button{font-family:inherit}
   color:var(--text);font-size:15px}
 .sheet input:focus{outline:none;border-color:var(--gold)}
 .auth-error{color:var(--red);font-size:13px;font-weight:600}
+/* Google sign-in — white box with the multicolour G */
+.google-btn{background:#fff;color:#1f1f1f;border:1px solid #dadce0;display:flex;align-items:center;justify-content:center;
+  gap:11px;font-weight:700;font-size:15px;margin-top:8px}
+.google-btn:hover{background:#f5f5f5}
+.google-btn svg{flex:none}
 .or-line{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--muted-2);font-size:12px}
 .or-line::before,.or-line::after{content:"";flex:1;height:1px;background:var(--border)}
 .loc-box{display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--border);
