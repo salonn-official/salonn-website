@@ -27,8 +27,10 @@
   <meta name="twitter:description" content="Discover and book top-rated salons and barbershops near you. Real-time slots, secure online payment, instant confirmation." />
   <meta name="twitter:image" content="https://www.salonn.hair/og-image.png" />
 
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23FFD700'/><text x='50' y='72' font-size='64' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%23141414'>S</text></svg>" />
-  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="icon" href="/favicon.ico" sizes="48x48" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512.png" />
+  <link rel="apple-touch-icon" href="/favicon-192.png" />
 
   <!-- Structured data: tells Google this is the official Salonn site + wires
        the sitelinks search box for brand searches -->
@@ -66,7 +68,7 @@
         "url": "https://play.google.com/store/apps/details?id=com.salonn.salonn",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" }
       },
-      { "@type": "SiteNavigationElement", "position": 1, "name": "Home", "url": "https://www.salonn.hair/" },
+      { "@type": "SiteNavigationElement", "position": 1, "name": "Home", "url": "https://www.salonn.hair/home" },
       { "@type": "SiteNavigationElement", "position": 2, "name": "Explore", "url": "https://www.salonn.hair/explore" },
       { "@type": "SiteNavigationElement", "position": 3, "name": "Bookings", "url": "https://www.salonn.hair/bookings" },
       { "@type": "SiteNavigationElement", "position": 4, "name": "Login", "url": "https://www.salonn.hair/login" }
@@ -77,7 +79,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=27" />
+  <link rel="stylesheet" href="/styles.css?v=28" />
 </head>
 <body>
   <!-- Splash screen (matches the Salonn app: gold ground, dark tile + wordmark) -->
@@ -97,7 +99,7 @@
       <h1>Salonn — Book salons &amp; barbershops near you</h1>
       <p>Salonn helps you discover and book top-rated salons and barbershops near you in Sambalpur, Hirakud, Burla and nearby areas. Browse salons, see real-time available slots, pay securely online and get instant confirmation.</p>
       <p>Please enable JavaScript to use Salonn, or <a href="https://play.google.com/store/apps/details?id=com.salonn.salonn" style="color:#ffd700">get the Salonn app on Google Play</a>.</p>
-      <nav><a href="/">Homepage</a> · <a href="/explore">Explore</a> · <a href="/bookings">Bookings</a> · <a href="/login">Login</a></nav>
+      <nav><a href="/home">Homepage</a> · <a href="/explore">Explore</a> · <a href="/bookings">Bookings</a> · <a href="/login">Login</a></nav>
     </div>
   </noscript>
 
@@ -169,8 +171,8 @@
 
     <!-- ─────────── TABS (bottom on mobile, top nav on desktop) ─────────── -->
     <nav class="tabbar">
-      <a class="tb-brand" data-tab="home" href="/"><span class="brand-mark small">S</span><b>Salonn</b></a>
-      <a class="tab active" data-tab="home" href="/">
+      <a class="tb-brand" data-tab="home" href="/home"><span class="brand-mark small">S</span><b>Salonn</b></a>
+      <a class="tab active" data-tab="home" href="/home">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 3 10v11h6v-6h6v6h6V10z"/></svg><span>Home</span>
       </a>
       <a class="tab" data-tab="explore" href="/explore">
@@ -225,6 +227,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  <script src="/app.js?v=27"></script>
+  <script src="/app.js?v=28"></script>
 </body>
 </html>

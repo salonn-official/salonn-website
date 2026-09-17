@@ -47,7 +47,7 @@ function toast(msg) {
 
 /* ── Tab router ── */
 const screens = { home: "screen-home", explore: "screen-explore", bookings: "screen-bookings", profile: "screen-profile" };
-const TAB_PATH = { home: "/", explore: "/explore", bookings: "/bookings", profile: "/profile" };
+const TAB_PATH = { home: "/home", explore: "/explore", bookings: "/bookings", profile: "/profile" };
 function show(tab) {
   for (const k in screens) $(screens[k]).hidden = k !== tab;
   if (!$("screen-detail").hidden) document.title = DEFAULT_TITLE; // leaving a salon
@@ -1319,7 +1319,8 @@ if (_salon) {
 } else {
   // Section deep links (real URLs → help Google build sitelinks).
   const path = location.pathname.replace(/\/+$/, "");
-  if (path === "/explore") show("explore");
+  if (path === "/home") show("home");
+  else if (path === "/explore") show("explore");
   else if (path === "/bookings") show("bookings");
   else if (path === "/profile") show("profile");
   else if (path === "/login") openAuth("login");
