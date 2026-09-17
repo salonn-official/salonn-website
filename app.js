@@ -333,7 +333,7 @@ function buildReelSlide(r) {
   const slide = document.createElement("div"); slide.className = "rv-slide";
 
   const top = document.createElement("div"); top.className = "rv-topbar";
-  top.innerHTML = `<span class="brand-mark small">S</span><div class="rv-brand"><b>Salonn</b><small>Hairstyle &amp; Grooming</small></div>`;
+  top.innerHTML = `<div class="rv-brandbox"><img class="rv-logo" src="/favicon-192.png?v=3" alt="Salonn" width="30" height="30"><div class="rv-brand"><b>Salonn</b><small>Hairstyle &amp; Grooming</small></div></div>`;
 
   const media = document.createElement("div"); media.className = "rv-media";
   const dots = document.createElement("div"); dots.className = "rv-dots";
