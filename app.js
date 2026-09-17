@@ -47,19 +47,21 @@ function toast(msg) {
 
 /* ── Tab router ── */
 const screens = { home: "screen-home", explore: "screen-explore", bookings: "screen-bookings", profile: "screen-profile" };
+const TAB_PATH = { home: "/", explore: "/explore", bookings: "/bookings", profile: "/profile" };
 function show(tab) {
   for (const k in screens) $(screens[k]).hidden = k !== tab;
-  if (!$("screen-detail").hidden) { // leaving an open salon → restore title + URL
-    document.title = DEFAULT_TITLE;
-    if (location.pathname.startsWith("/s/")) { try { history.replaceState(null, "", "/"); } catch (_) {} }
-  }
+  if (!$("screen-detail").hidden) document.title = DEFAULT_TITLE; // leaving a salon
   $("screen-detail").hidden = true;
   document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+  // Reflect the section in the address bar (real, crawlable URLs for SEO).
+  try { history.replaceState(null, "", TAB_PATH[tab] || "/"); } catch (_) {}
   if (tab === "explore" && !reelsLoaded) loadReels();
   if (tab === "bookings") renderBookings();
   if (tab === "profile") renderProfile();
 }
-document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => show(b.dataset.tab)));
+document.querySelectorAll(".tab, .tb-brand").forEach((b) => b.addEventListener("click", (e) => {
+  if (b.dataset.tab) { e.preventDefault(); show(b.dataset.tab); }
+}));
 
 /* ── Splash: play the intro, then reveal the app ── */
 setTimeout(() => { const sp = $("splash"); if (sp) sp.classList.add("hide"); }, 2600);
@@ -667,7 +669,8 @@ function timeAgo(t) {
 window.closeDetail = () => {
   $("screen-detail").hidden = true;
   document.title = DEFAULT_TITLE;
-  if (location.pathname.startsWith("/s/")) { try { history.replaceState(null, "", "/"); } catch (_) {} }
+  const cur = document.querySelector(".tab.active")?.dataset.tab || "home";
+  try { history.replaceState(null, "", TAB_PATH[cur] || "/"); } catch (_) {}
 };
 
 async function loadGallery(id) {
@@ -1311,4 +1314,13 @@ function salonIdFromUrl() {
   return m ? m[0] : new URLSearchParams(location.search).get("salon");
 }
 const _salon = salonIdFromUrl();
-if (_salon) openSalonById(_salon);
+if (_salon) {
+  openSalonById(_salon);
+} else {
+  // Section deep links (real URLs → help Google build sitelinks).
+  const path = location.pathname.replace(/\/+$/, "");
+  if (path === "/explore") show("explore");
+  else if (path === "/bookings") show("bookings");
+  else if (path === "/profile") show("profile");
+  else if (path === "/login") openAuth("login");
+}
