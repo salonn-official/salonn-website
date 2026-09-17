@@ -384,13 +384,10 @@ input,button{font-family:inherit}
 .rv-cap{margin-top:8px;font-size:13.5px;color:#eee;line-height:1.4}
 .rv-likes{margin-top:6px;font-size:12.5px;color:#bbb}
 
-/* Post top bar: centered Salonn brand box */
-.rv-topbar{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;justify-content:center;
-  padding:calc(14px + env(safe-area-inset-top)) 16px 14px;
-  background:linear-gradient(rgba(0,0,0,.5),transparent);pointer-events:none}
-.rv-brandbox{pointer-events:auto;display:flex;align-items:center;gap:10px;color:#fff;
-  background:rgba(0,0,0,.62);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.12);
-  border-radius:14px;padding:7px 15px 7px 8px}
+/* Post top bar: solid black, full-width, curved bottom corners */
+.rv-topbar{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;align-items:center;justify-content:center;gap:10px;
+  padding:calc(13px + env(safe-area-inset-top)) 16px 13px;color:#fff;
+  background:#000;border-radius:0 0 22px 22px}
 .rv-logo{width:30px;height:30px;border-radius:9px;flex:none;display:block}
 .rv-brand{display:flex;flex-direction:column;line-height:1.15}
 .rv-brand b{font-family:'Space Grotesk';font-size:15px}
