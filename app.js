@@ -250,51 +250,89 @@ async function loadReels() {
   reelsLoaded = true;
   renderReelGrid();
 }
-// Explore grid — filtered by the search box (salon name / caption).
+// One square thumbnail in the Explore grid.
+function reelThumb(r) {
+  const thumb = (r.image_urls && r.image_urls[0]) || r.salon?.image_url;
+  const isPost = (r.media_type || "").toLowerCase() !== "video";
+  const badge = isPost ? ((r.image_urls || []).length > 1 ? "▦" : "▣") : "▶";
+  const div = document.createElement("div");
+  div.className = "reel";
+  div.innerHTML = `${thumb ? `<img src="${esc(thumb)}" loading="lazy">` : ""}<div class="ov"></div>
+    <div class="badge">${badge}</div>
+    <div class="cap">❤ ${r.like_count || 0} · ${esc(r.salon?.name || "")}</div>`;
+  div.addEventListener("click", () => openReel(r));
+  return div;
+}
+// Explore grid — when searching we also surface matching SALONS (openable), so
+// a salon with no post can still be found; otherwise it's the posts grid.
 function renderReelGrid() {
   const g = $("reelGrid");
-  if (!allReels.length) { g.innerHTML = `<div class="empty">No reels yet.</div>`; return; }
   const q = ($("reelSearch")?.value || "").trim().toLowerCase();
-  const rows = q
-    ? allReels.filter((r) => (r.salon?.name || "").toLowerCase().includes(q) || (r.caption || "").toLowerCase().includes(q))
-    : allReels;
-  if (!rows.length) { g.innerHTML = `<div class="empty">No salons match “${esc(q)}”.</div>`; return; }
+  if (!q) {
+    g.className = "reel-grid";
+    if (!allReels.length) { g.innerHTML = `<div class="empty">No reels yet.</div>`; return; }
+    g.innerHTML = ""; for (const r of allReels) g.appendChild(reelThumb(r));
+    return;
+  }
+  const salons = allSalons.filter((s) => `${s.name} ${s.area} ${s.city}`.toLowerCase().includes(q));
+  const reels = allReels.filter((r) => (r.salon?.name || "").toLowerCase().includes(q) || (r.caption || "").toLowerCase().includes(q));
+  g.className = "ex-results";
+  if (!salons.length && !reels.length) { g.innerHTML = `<div class="empty">No salons match “${esc(q)}”.</div>`; return; }
   g.innerHTML = "";
-  for (const r of rows) {
-    const thumb = (r.image_urls && r.image_urls[0]) || r.salon?.image_url;
-    const isPost = (r.media_type || "").toLowerCase() !== "video";
-    const badge = isPost ? ((r.image_urls || []).length > 1 ? "▦" : "▣") : "▶";
-    const div = document.createElement("div");
-    div.className = "reel";
-    div.innerHTML = `${thumb ? `<img src="${esc(thumb)}" loading="lazy">` : ""}<div class="ov"></div>
-      <div class="badge">${badge}</div>
-      <div class="cap">❤ ${r.like_count || 0} · ${esc(r.salon?.name || "")}</div>`;
-    div.addEventListener("click", () => openReel(r));
-    g.appendChild(div);
+  if (salons.length) {
+    const sec = document.createElement("div"); sec.className = "ex-sec";
+    sec.innerHTML = `<div class="ex-h">Salons</div>`;
+    const list = document.createElement("div"); list.className = "list";
+    for (const s of salons) list.appendChild(salonCard(s));
+    sec.appendChild(list); g.appendChild(sec);
+  }
+  if (reels.length) {
+    const sec = document.createElement("div"); sec.className = "ex-sec";
+    sec.innerHTML = `<div class="ex-h">Posts</div>`;
+    const grid = document.createElement("div"); grid.className = "reel-grid";
+    for (const r of reels) grid.appendChild(reelThumb(r));
+    sec.appendChild(grid); g.appendChild(sec);
   }
 }
 $("reelSearch").addEventListener("input", renderReelGrid);
 
-/* ── Reel viewer: vertical scroll feed (swipe up/down like Instagram) ── */
-let reelIO = null;
-function openReel(startReel) {
+/* ── Reel viewer: vertical scroll feed with like / comment / share ── */
+const heartSvg = (f) => f
+  ? `<svg viewBox="0 0 24 24" width="27" height="27" fill="#ff3b5c"><path d="M12 21s-7.5-4.6-10-9.3C.4 8.6 1.7 5 5 5c2 0 3.2 1.1 4 2.3C9.8 6.1 11 5 13 5c3.3 0 4.6 3.6 3 6.7C19.5 16.4 12 21 12 21Z"/></svg>`
+  : `<svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="#fff" stroke-width="2"><path d="M12 20.3S3 15.5 3 9.3C3 6.4 5.2 5 7 5c1.8 0 3.2 1 5 3 1.8-2 3.2-3 5-3 1.8 0 4 1.4 4 4.3 0 6.2-9 11-9 11Z"/></svg>`;
+const commentSvg = () => `<svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M21 11.5A7.5 7.5 0 0 1 6 15l-3 1 1-3a7.5 7.5 0 1 1 17-1.5Z"/></svg>`;
+const shareSvgW = () => `<svg viewBox="0 0 24 24" width="24" height="24" fill="#fff"><path d="M18 16.1a3 3 0 0 0-2.3 1.1l-6-3.5a3 3 0 0 0 0-1.4l6-3.5A3 3 0 1 0 15 6c0 .2 0 .4.1.6L9 10.2a3 3 0 1 0 0 3.6l6.1 3.6c0 .2-.1.4-.1.6a3 3 0 1 0 3-2.5Z"/></svg>`;
+
+let reelIO = null, likedReels = new Set();
+async function openReel(startReel) {
   const feed = $("rvFeed");
   feed.innerHTML = "";
   const list = allReels.length ? allReels : [startReel];
   const startIdx = Math.max(0, list.findIndex((x) => x.id === startReel.id));
+  likedReels = new Set();
+  if (session) {
+    try {
+      const { data } = await sb.from("reel_likes").select("reel_id").eq("user_id", session.user.id).in("reel_id", list.map((x) => x.id));
+      (data || []).forEach((x) => likedReels.add(x.reel_id));
+    } catch (_) {}
+  }
   for (const r of list) feed.appendChild(buildReelSlide(r));
   $("reelViewer").hidden = false;
   requestAnimationFrame(() => {
     const slide = feed.children[startIdx];
-    if (slide) feed.scrollTop = slide.offsetTop; // start on the tapped post
+    if (slide) feed.scrollTop = slide.offsetTop;
     observeReelVideos(feed);
   });
 }
-// One full-screen post: media (image carousel or video) + info overlay.
+// One full-screen post: brand top bar, media, right-side actions, info.
 function buildReelSlide(r) {
   const imgs = (r.image_urls && r.image_urls.length) ? r.image_urls : (r.salon?.image_url ? [r.salon.image_url] : []);
   const isVideo = (r.media_type || "").toLowerCase() === "video" && r.video_url;
   const slide = document.createElement("div"); slide.className = "rv-slide";
+
+  const top = document.createElement("div"); top.className = "rv-topbar";
+  top.innerHTML = `<span class="brand-mark small">S</span><div class="rv-brand"><b>Salonn</b><small>Hairstyle &amp; Grooming</small></div>`;
+
   const media = document.createElement("div"); media.className = "rv-media";
   const dots = document.createElement("div"); dots.className = "rv-dots";
   let i = 0;
@@ -312,27 +350,118 @@ function buildReelSlide(r) {
     }
   }
   paint();
-  // Horizontal swipe between a post's images (vertical scroll still moves posts).
   let sx = 0, sy = 0;
   media.addEventListener("touchstart", (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
   media.addEventListener("touchend", (e) => {
     if (isVideo || imgs.length < 2) return;
     const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
-      i = dx < 0 ? (i + 1) % imgs.length : (i - 1 + imgs.length) % imgs.length;
-      paint();
+      i = dx < 0 ? (i + 1) % imgs.length : (i - 1 + imgs.length) % imgs.length; paint();
     }
   }, { passive: true });
+
+  const liked = likedReels.has(r.id);
+  const actions = document.createElement("div"); actions.className = "rv-actions"; actions.dataset.reel = r.id;
+  actions.innerHTML = `
+    <button class="rv-act like${liked ? " on" : ""}" data-act="like">${heartSvg(liked)}<span class="rv-c" data-c="like">${r.like_count || 0}</span></button>
+    <button class="rv-act" data-act="comment">${commentSvg()}<span class="rv-c" data-c="comment">${r.comment_count || 0}</span></button>
+    <button class="rv-act" data-act="share">${shareSvgW()}<span class="rv-c">Share</span></button>`;
+  actions.querySelector('[data-act="like"]').onclick = () => toggleLike(r);
+  actions.querySelector('[data-act="comment"]').onclick = () => openComments(r);
+  actions.querySelector('[data-act="share"]').onclick = () => shareReel(r);
 
   const info = document.createElement("div"); info.className = "rv-info";
   info.innerHTML = `
     <div class="rv-salon">${esc(r.salon?.name || "Salon")}<button class="bk">Book</button></div>
     ${r.caption ? `<div class="rv-cap">${esc(r.caption)}</div>` : ""}
-    <div class="rv-likes">❤ ${r.like_count || 0} · ${r.views || 0} views</div>`;
+    <div class="rv-likes">${r.views || 0} views</div>`;
   info.querySelector(".bk").onclick = () => { closeReel(); if (r.salon) openSalon({ id: r.salon_id, ...r.salon }); };
 
-  slide.append(media, dots, info);
+  slide.append(top, media, dots, actions, info);
   return slide;
+}
+
+// Like requires login. Optimistic toggle; reel_likes triggers keep like_count.
+async function toggleLike(r) {
+  if (!session) { gateReelLogin(r); return; }
+  const nowLiked = !likedReels.has(r.id);
+  if (nowLiked) { likedReels.add(r.id); r.like_count = (r.like_count || 0) + 1; }
+  else { likedReels.delete(r.id); r.like_count = Math.max(0, (r.like_count || 0) - 1); }
+  const btn = document.querySelector(`.rv-actions[data-reel="${r.id}"] [data-act="like"]`);
+  if (btn) { btn.classList.toggle("on", nowLiked); btn.innerHTML = heartSvg(nowLiked) + `<span class="rv-c" data-c="like">${r.like_count}</span>`; btn.onclick = () => toggleLike(r); }
+  try {
+    if (nowLiked) await sb.from("reel_likes").insert({ reel_id: r.id, user_id: session.user.id });
+    else await sb.from("reel_likes").delete().eq("reel_id", r.id).eq("user_id", session.user.id);
+  } catch (_) {}
+}
+
+// Stash which post to reopen after a Google login (page reloads on OAuth).
+function gateReelLogin(r) {
+  try { localStorage.setItem("salonn_pending_reel", r.id); } catch (_) {}
+  closeReel();
+  openAuth("reel");
+}
+async function openReelById(id) {
+  show("explore");
+  if (!allReels.length) await loadReels();
+  const r = allReels.find((x) => x.id === id);
+  if (r) openReel(r);
+}
+
+/* Comments panel (slides up inside the reel viewer). */
+async function openComments(r) {
+  $("rvcList").innerHTML = `<div class="empty">Loading…</div>`;
+  $("rvComments").hidden = false;
+  renderCommentFoot(r);
+  const { data } = await sb.from("reel_comments").select("user_name,body,created_at")
+    .eq("reel_id", r.id).order("created_at", { ascending: true }).limit(200);
+  const rows = data || [];
+  $("rvcList").innerHTML = rows.length ? rows.map((c) => `
+    <div class="rvc-item"><div class="rvc-av">${esc((c.user_name || "U").trim()[0] || "U").toUpperCase()}</div>
+      <div class="rvc-body"><b>${esc(c.user_name || "Someone")}</b><p>${esc(c.body || "")}</p></div></div>`).join("")
+    : `<div class="empty">No comments yet — be the first!</div>`;
+  $("rvcList").scrollTop = $("rvcList").scrollHeight;
+}
+function renderCommentFoot(r) {
+  const f = $("rvcFoot");
+  if (!session) {
+    f.innerHTML = `<button class="btn google-btn block" id="rvcLogin">${GOOGLE_G_SVG}<span>Log in to comment</span></button>`;
+    $("rvcLogin").onclick = () => { closeComments(); gateReelLogin(r); };
+  } else {
+    f.innerHTML = `<form id="rvcForm"><input id="rvcInput" placeholder="Add a comment…" maxlength="300" autocomplete="off"><button class="rvc-send" id="rvcSend" type="submit">Post</button></form>`;
+    $("rvcForm").onsubmit = async (e) => { e.preventDefault(); await postComment(r); };
+  }
+}
+async function postComment(r) {
+  const inp = $("rvcInput"); const body = inp.value.trim(); if (!body) return;
+  inp.disabled = true;
+  const name = session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "You";
+  try {
+    await sb.from("reel_comments").insert({ reel_id: r.id, user_id: session.user.id, user_name: name, body });
+    r.comment_count = (r.comment_count || 0) + 1;
+    const cEl = document.querySelector(`.rv-actions[data-reel="${r.id}"] [data-c="comment"]`);
+    if (cEl) cEl.textContent = r.comment_count;
+    await openComments(r); // reload list
+  } catch (_) {}
+}
+function closeComments() { $("rvComments").hidden = true; }
+$("rvcClose").addEventListener("click", closeComments);
+$("rvComments").addEventListener("click", (e) => { if (e.target.id === "rvComments") closeComments(); });
+
+// Share the post: the photo AND the salon link (native share sheet), or copy.
+async function shareReel(r) {
+  const url = r.salon_id ? salonLink({ id: r.salon_id, name: r.salon?.name || "salon" }) : location.origin;
+  const text = `Check out ${r.salon?.name || "this salon"} on Salonn: ${url}`;
+  const imgUrl = (r.image_urls && r.image_urls[0]) || r.salon?.image_url;
+  if (imgUrl && navigator.canShare) {
+    try {
+      const blob = await (await fetch(imgUrl)).blob();
+      const file = new File([blob], "salonn.jpg", { type: blob.type || "image/jpeg" });
+      if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "Salonn", text, url }); return; }
+    } catch (_) {}
+  }
+  if (navigator.share) { try { await navigator.share({ title: "Salonn", text, url }); return; } catch (_) {} }
+  try { await navigator.clipboard.writeText(url); toast("Link copied — share it anywhere!"); } catch (_) { window.prompt("Copy this link:", url); }
 }
 // Play only the post that's on screen; pause the others.
 function observeReelVideos(feed) {
@@ -348,6 +477,7 @@ function observeReelVideos(feed) {
 }
 function closeReel() {
   if (reelIO) { reelIO.disconnect(); reelIO = null; }
+  closeComments();
   $("rvFeed").innerHTML = ""; $("reelViewer").hidden = true;
 }
 $("rvClose").addEventListener("click", closeReel);
@@ -1043,6 +1173,9 @@ async function afterAuth(sess) {
   const cur = document.querySelector(".tab.active")?.dataset.tab;
   if (cur === "profile") renderProfile();
   if (cur === "bookings") renderBookings();
+  // Came here to like/comment a post → reopen it now that they're logged in.
+  let pend = null; try { pend = localStorage.getItem("salonn_pending_reel"); } catch (_) {}
+  if (pend) { try { localStorage.removeItem("salonn_pending_reel"); } catch (_) {} openReelById(pend); }
 }
 
 /* ── Phone capture at booking time ── */
@@ -1110,6 +1243,7 @@ function closeTopLayer() {
   if (!$("thankYou").hidden) { closeThankYou(); show("bookings"); return true; }
   if (!$("sheetModal").hidden) { closeSheet(); return true; }
   if (!$("authModal").hidden) { $("authModal").hidden = true; return true; }
+  if (!$("reelViewer").hidden && !$("rvComments").hidden) { closeComments(); return true; }
   if (!$("reelViewer").hidden) { closeReel(); return true; }
   if (!$("screen-detail").hidden) { closeDetail(); return true; }
   const cur = document.querySelector(".tab.active")?.dataset.tab;
@@ -1166,6 +1300,10 @@ if (_q) { const si = $("searchInput"); if (si) si.value = _q; }
 
 loadSalons();   // show salons immediately (applies ?q= filter if present)
 askLocation();  // auto-trigger the browser's native location permission prompt
+
+// A pending "reopen this post after login" only survives across the Google
+// redirect; on any normal load, drop it so it can't fire later unexpectedly.
+if (!OAUTH_RETURN) { try { localStorage.removeItem("salonn_pending_reel"); } catch (_) {} }
 
 // Deep link: a shared /s/<name>-<id> (or legacy /?salon=<id>) opens that salon.
 function salonIdFromUrl() {
