@@ -80,7 +80,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=39" />
+  <link rel="stylesheet" href="/styles.css?v=41" />
 </head>
 <body>
   <!-- Splash screen (matches the Salonn app: gold ground, dark tile + wordmark) -->
@@ -110,10 +110,13 @@
     <section class="screen" id="screen-home">
       <header class="app-head">
         <div class="hbrand"><span class="brand-mark small">S</span><b>Salonn</b></div>
-        <button class="loc loc-right" id="locBtn">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>
-          <span><small>Your location</small><b id="locLabel">Enable location</b></span>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+        <button class="loc" id="locBtn">
+          <small>Your location</small>
+          <span class="loc-line">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>
+            <b id="locLabel">Enable location</b>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+          </span>
         </button>
       </header>
 
@@ -246,7 +249,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  <script src="/app.js?v=39"></script>
+  <script src="/app.js?v=41"></script>
 
   <!-- Vercel Web Analytics (visitor + page-view counts) — static-site snippet -->
   <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>

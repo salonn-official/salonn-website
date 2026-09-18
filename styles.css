@@ -56,17 +56,15 @@ input,button{font-family:inherit}
 }
 .app-head.simple{padding:20px 16px 10px}
 .app-head.simple h1{font-size:26px}
-/* Home header brand: gold "S" tile + Salonn, on the left */
-.hbrand{display:flex;align-items:center;gap:9px;font-family:'Space Grotesk';font-weight:700;font-size:20px;letter-spacing:-.02em}
-.loc{
-  display:flex;align-items:center;gap:8px;background:none;border:none;color:var(--text);cursor:pointer;text-align:left;
-}
-.loc svg:first-child{color:var(--gold-ink)}
-.loc small{display:block;font-size:11px;color:var(--muted-2)}
-.loc b{font-size:15px}
-/* Location moved to the right → right-align its label stack */
-.loc-right{text-align:right}
-.loc-right small{color:var(--muted-2)}
+/* Home header brand: gold "S" tile + Salonn, on the left — bigger */
+.hbrand{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk';font-weight:700;font-size:25px;letter-spacing:-.02em}
+.hbrand .brand-mark.small{width:42px;height:42px;font-size:23px;border-radius:12px}
+/* Location: label on top, then a row with pin + value + chevron */
+.loc{background:none;border:none;color:var(--text);cursor:pointer;display:flex;flex-direction:column;align-items:flex-end;gap:1px}
+.loc small{font-size:11px;color:var(--muted-2)}
+.loc-line{display:flex;align-items:center;gap:5px}
+.loc-line svg:first-child{color:var(--gold-ink)}
+.loc b{font-size:15.5px}
 
 /* ── Splash screen (matches the Salonn app) ── */
 .splash{position:fixed;inset:0;z-index:200;background:var(--gold);
@@ -280,8 +278,8 @@ input,button{font-family:inherit}
 /* ── Bottom tabs ── */
 .tabbar{
   position:absolute;left:0;right:0;bottom:0;height:calc(var(--tabh) + env(safe-area-inset-bottom));
-  padding-bottom:env(safe-area-inset-bottom);display:flex;background:rgba(20,20,20,.94);
-  backdrop-filter:blur(14px);border-top:1px solid var(--border);z-index:8;
+  padding-bottom:env(safe-area-inset-bottom);display:flex;background:var(--bg);
+  border-top:1px solid var(--border);z-index:8;
 }
 .tab{flex:1;background:none;border:none;color:var(--muted-2);cursor:pointer;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:700;text-decoration:none}
@@ -461,8 +459,8 @@ input,button{font-family:inherit}
 .trend-card{flex:0 0 auto;width:156px;scroll-snap-align:start;position:relative;display:block;cursor:pointer;
   border-radius:18px;overflow:hidden;background:#000;box-shadow:0 4px 16px rgba(0,0,0,.14)}
 .trend-card:active{transform:scale(.99)}
-.trend-media{position:relative;width:100%;aspect-ratio:3/4;background:#000}
-.trend-media img,.trend-media video{width:100%;height:100%;object-fit:contain}
+.trend-media{position:relative;width:100%;aspect-ratio:4/5;background:#000}
+.trend-media img,.trend-media video{width:100%;height:100%;object-fit:cover;display:block}
 .trend-stars{position:absolute;top:8px;right:9px;z-index:2;display:flex;gap:1px;color:#ffd700;font-size:14px;
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.65))}
 .trend-stars .off{color:rgba(255,255,255,.5)}
