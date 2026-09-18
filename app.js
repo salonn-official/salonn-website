@@ -512,7 +512,7 @@ async function openSalon(s) {
           <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M18 16.1a3 3 0 0 0-2.3 1.1l-6-3.5a3 3 0 0 0 0-1.4l6-3.5A3 3 0 1 0 15 6c0 .2 0 .4.1.6L9 10.2a3 3 0 1 0 0 3.6l6.1 3.6c0 .2-.1.4-.1.6a3 3 0 1 0 3-2.5Z"/></svg>
         </button>
       </div>
-      <div class="d-row">★ <b style="color:var(--gold)">${s.rating || 0}</b> · ${area}${dist}</div>
+      <div class="d-row">★ <b style="color:var(--gold-ink)">${s.rating || 0}</b> · ${area}${dist}</div>
       <div class="sec-head" style="margin-top:20px"><h2>Choose services</h2></div>
       <div id="svcList"><div class="empty">Loading services…</div></div>
       <div id="detailReels"></div>

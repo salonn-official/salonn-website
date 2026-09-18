@@ -1,7 +1,7 @@
 :root{
   --bg:#0e0e0e; --surface:#171717; --surface-2:#1f1f1f; --border:#282828;
   --border-strong:#3a3a3a; --text:#f5f5f5; --muted:#a3a3a3; --muted-2:#7d7d7d;
-  --gold:#ffd700; --gold-dim:#d9b400; --ink:#141414; --red:#ff4d4d;
+  --gold:#ffd700; --gold-dim:#d9b400; --gold-ink:#ffd700; --ink:#141414; --red:#ff4d4d;
   --green:#4ade80; --star:#ffc531; --tabh:64px;
   --page:#000; --page-grad:radial-gradient(80% 60% at 50% 0%,#161616,#000);
   color-scheme:dark;
@@ -11,8 +11,10 @@
   :root{
     --bg:#ffffff; --surface:#f7f8f9; --surface-2:#eceef1; --border:#e4e7ea;
     --border-strong:#d2d6da; --text:#181a1e; --muted:#565b63; --muted-2:#8a9099;
-    --gold:#c99700; --gold-dim:#a87e00; --ink:#141414; --red:#e5484d;
-    --green:#2f9e44; --star:#e0a400;
+    /* Keep the brand yellow bright for BACKGROUNDS (tiles, badge, avatar,
+       buttons); use a deeper gold only for gold TEXT/icons on white. */
+    --gold:#ffd700; --gold-dim:#d9b400; --gold-ink:#9a7600; --ink:#141414; --red:#e5484d;
+    --green:#2f9e44; --star:#c99700;
     --page:#e9ebee; --page-grad:radial-gradient(80% 60% at 50% 0%,#f3f4f6,#e4e7ea);
     color-scheme:light;
   }
@@ -59,7 +61,7 @@ input,button{font-family:inherit}
 .loc{
   display:flex;align-items:center;gap:8px;background:none;border:none;color:var(--text);cursor:pointer;text-align:left;
 }
-.loc svg:first-child{color:var(--gold)}
+.loc svg:first-child{color:var(--gold-ink)}
 .loc small{display:block;font-size:11px;color:var(--muted-2)}
 .loc b{font-size:15px}
 /* Location moved to the right → right-align its label stack */
@@ -107,7 +109,7 @@ input,button{font-family:inherit}
   flex:none;padding:9px 16px;border-radius:999px;background:var(--surface);border:1px solid var(--border);
   color:var(--muted);font-weight:700;font-size:13.5px;cursor:pointer;white-space:nowrap;
 }
-.chip.active{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.chip.active{background:var(--gold);color:var(--ink);border-color:var(--gold-ink)}
 
 .sec-head{display:flex;align-items:baseline;justify-content:space-between;margin:2px 0 12px}
 .sec-head h2{font-size:19px}
@@ -129,15 +131,15 @@ input,button{font-family:inherit}
 
 /* "We're expanding!" — area known, no salon serves it yet */
 .expanding{display:flex;flex-direction:column;align-items:center;text-align:center;padding:56px 20px 40px}
-.exp-ico{width:96px;height:96px;border-radius:50%;background:rgba(255,215,0,.1);color:var(--gold);
+.exp-ico{width:96px;height:96px;border-radius:50%;background:rgba(255,215,0,.1);color:var(--gold-ink);
   display:grid;place-items:center;margin-bottom:24px}
 .exp-title{font-size:24px;letter-spacing:-.5px}
 .exp-sub{max-width:300px;color:var(--muted);font-size:13.5px;line-height:1.6;margin:10px 0 24px}
 .exp-sub b{color:var(--text)}
 .exp-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:999px;cursor:pointer;
   background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text);font-weight:700;font-size:13px}
-.exp-btn svg{color:var(--gold)}
-.exp-btn:hover{border-color:var(--gold)}
+.exp-btn svg{color:var(--gold-ink)}
+.exp-btn:hover{border-color:var(--gold-ink)}
 
 /* ── Explore reels grid ── */
 .reel-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:6px}
@@ -165,13 +167,13 @@ input,button{font-family:inherit}
 .d-title{font-size:24px;font-weight:700;flex:1;min-width:0}
 .d-row{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:14px;margin-top:8px}
 .svc{display:flex;align-items:center;gap:12px;padding:15px;border:1.5px solid var(--border);border-radius:16px;margin-top:11px;cursor:pointer}
-.svc.on{border-color:var(--gold);background:rgba(255,215,0,.06)}
+.svc.on{border-color:var(--gold-ink);background:rgba(255,215,0,.06)}
 .svc-info{flex:1}
 .svc-info b{font-size:15px}
 .svc-info small{display:block;color:var(--muted-2);margin-top:3px;font-size:12.5px}
-.svc-price{font-weight:800;color:var(--gold)}
+.svc-price{font-weight:800;color:var(--gold-ink)}
 .svc-check{width:24px;height:24px;border-radius:7px;border:1.5px solid var(--border-strong);display:grid;place-items:center;color:transparent}
-.svc.on .svc-check{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+.svc.on .svc-check{background:var(--gold);border-color:var(--gold-ink);color:var(--ink)}
 
 /* ── Featured salon (top of Home) ── */
 .featured{margin-bottom:18px}
@@ -206,7 +208,7 @@ input,button{font-family:inherit}
 .menu{margin-top:20px;display:flex;flex-direction:column;gap:2px}
 .mi{display:flex;align-items:center;gap:14px;padding:15px 14px;background:var(--surface);border:1px solid var(--border);
   border-radius:14px;color:var(--text);cursor:pointer;font-weight:600;font-size:15px}
-.mi .ico{width:22px;color:var(--gold);display:grid;place-items:center}
+.mi .ico{width:22px;color:var(--gold-ink);display:grid;place-items:center}
 .mi .ico svg{display:block}
 .mi .arr{margin-left:auto;color:var(--muted-2)}
 .mi.danger{color:var(--red)} .mi.danger .ico{color:var(--red)}
@@ -225,7 +227,7 @@ input,button{font-family:inherit}
 .contact-row b,.contact-row small{text-decoration:none}
 .contact-row:active{transform:scale(.99)}
 .cr-ico{width:40px;height:40px;flex:none;border-radius:11px;background:rgba(255,215,0,.12);
-  color:var(--gold);display:grid;place-items:center}
+  color:var(--gold-ink);display:grid;place-items:center}
 .cr-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .cr-body b{font-size:14px;font-weight:700}
 .cr-body small{font-size:12.5px;color:var(--muted-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -275,7 +277,7 @@ input,button{font-family:inherit}
   align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:700;text-decoration:none}
 .tabbar a{text-decoration:none}
 .tab svg{width:23px;height:23px}
-.tab.active{color:var(--gold)}
+.tab.active{color:var(--gold-ink)}
 
 /* ── Auth sheet ── */
 .modal{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center;
@@ -294,7 +296,7 @@ input,button{font-family:inherit}
 .sheet h3{font-size:22px} .sheet form{display:grid;gap:11px;margin:20px 0 12px;text-align:left}
 .sheet input{background:var(--surface-2);border:1px solid var(--border-strong);border-radius:12px;padding:14px 15px;
   color:var(--text);font-size:15px}
-.sheet input:focus{outline:none;border-color:var(--gold)}
+.sheet input:focus{outline:none;border-color:var(--gold-ink)}
 .auth-error{color:var(--red);font-size:13px;font-weight:600}
 /* Google sign-in — white box with the multicolour G */
 .google-btn{background:#fff;color:#1f1f1f;border:1px solid #dadce0;display:flex;align-items:center;justify-content:center;
@@ -305,9 +307,9 @@ input,button{font-family:inherit}
 .or-line::before,.or-line::after{content:"";flex:1;height:1px;background:var(--border)}
 .loc-box{display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--border);
   border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted)}
-.loc-box svg{color:var(--gold);flex:none}
+.loc-box svg{color:var(--gold-ink);flex:none}
 .auth-switch{margin-top:16px;font-size:14px;color:var(--muted)}
-.link{background:none;border:none;color:var(--gold);font-weight:700;cursor:pointer;font-size:14px}
+.link{background:none;border:none;color:var(--gold-ink);font-weight:700;cursor:pointer;font-size:14px}
 #googleBtn{margin-top:10px}
 
 /* ── Toast ── */
@@ -333,7 +335,7 @@ input,button{font-family:inherit}
 .rev-stars{color:var(--star);font-size:16px;letter-spacing:2px}
 .rev-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;margin-top:12px}
 .rev-head{display:flex;align-items:center;gap:10px}
-.rev-ava{width:38px;height:38px;border-radius:50%;background:var(--surface-2);color:var(--gold);
+.rev-ava{width:38px;height:38px;border-radius:50%;background:var(--surface-2);color:var(--gold-ink);
   display:grid;place-items:center;font-weight:700;font-family:'Space Grotesk'}
 .rev-name{font-weight:700;font-size:14.5px}
 .rev-when{color:var(--muted-2);font-size:12px}
@@ -368,7 +370,7 @@ input,button{font-family:inherit}
 .ty-row:last-child{border-bottom:none}
 .ty-row span{color:var(--muted-2);font-size:12.5px;flex:none}
 .ty-row b{font-size:13.5px;text-align:right;word-break:break-word}
-.ty-amt{color:var(--gold)}
+.ty-amt{color:var(--gold-ink)}
 .ty-mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted)}
 .ty-note{margin-top:14px;line-height:1.5}
 
@@ -432,7 +434,7 @@ input,button{font-family:inherit}
 .rvc-foot form{display:flex;gap:10px;align-items:center}
 .rvc-foot input{flex:1;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:999px;
   padding:12px 16px;color:var(--text);font-size:14px}
-.rvc-foot input:focus{outline:none;border-color:var(--gold)}
+.rvc-foot input:focus{outline:none;border-color:var(--gold-ink)}
 .rvc-send{background:var(--gold);color:var(--ink);border:none;border-radius:999px;padding:11px 18px;font-weight:800;cursor:pointer}
 
 /* Explore search results (salons + posts sections) */
@@ -529,7 +531,7 @@ html,body{overflow:hidden} /* the app's own .scroll areas handle scrolling */
 
 /* ── Write-a-review button ── */
 .write-btn{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--gold);
-  color:var(--gold);font-weight:800;font-size:12.5px;padding:7px 13px;border-radius:999px;cursor:pointer;white-space:nowrap}
+  color:var(--gold-ink);font-weight:800;font-size:12.5px;padding:7px 13px;border-radius:999px;cursor:pointer;white-space:nowrap}
 .write-btn:hover{background:rgba(255,215,0,.1)}
 
 /* ── Star rating input + form fields (sheets) ── */
@@ -539,17 +541,17 @@ html,body{overflow:hidden} /* the app's own .scroll areas handle scrolling */
 .star-input span.on{color:var(--star)}
 .rev-textarea{width:100%;min-height:92px;background:var(--surface-2);border:1px solid var(--border-strong);
   border-radius:12px;padding:12px 14px;color:var(--text);font-size:15px;font-family:'Manrope';margin:12px 0 14px;resize:vertical}
-.rev-textarea:focus{outline:none;border-color:var(--gold)}
+.rev-textarea:focus{outline:none;border-color:var(--gold-ink)}
 .fld{display:block;text-align:left;font-size:13px;color:var(--muted);font-weight:600;margin-top:12px}
 .fld input{display:block;width:100%;margin-top:6px;background:var(--surface-2);border:1px solid var(--border-strong);
   border-radius:12px;padding:13px 14px;color:var(--text);font-size:15px;font-family:'Manrope'}
-.fld input:focus{outline:none;border-color:var(--gold)}
+.fld input:focus{outline:none;border-color:var(--gold-ink)}
 .sheet .btn{margin-top:6px}
 
 /* ── Detail header: Salonn left, Get-app (Play Store) right ── */
 .d-share{width:40px;height:40px;border-radius:50%;background:var(--surface);border:1px solid var(--border);
   color:var(--text);cursor:pointer;display:grid;place-items:center;flex:none}
-.d-share:hover{border-color:var(--gold);color:var(--gold)}
+.d-share:hover{border-color:var(--gold-ink);color:var(--gold-ink)}
 .d-getapp{margin-left:auto;display:inline-flex;align-items:center;gap:6px;background:var(--gold);color:var(--ink);
   border:none;border-radius:999px;padding:8px 15px;font-weight:800;font-size:13px;cursor:pointer;flex:none}
 .d-getapp:hover{background:#ffe14d}
@@ -567,7 +569,7 @@ html,body{overflow:hidden} /* the app's own .scroll areas handle scrolling */
   color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px}
 .day-chip small{font-size:11px;font-weight:600}
 .day-chip b{font-size:18px;font-family:'Space Grotesk';font-weight:700;line-height:1;color:var(--text)}
-.day-chip.on{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.day-chip.on{background:var(--gold);color:var(--ink);border-color:var(--gold-ink)}
 .day-chip.on small,.day-chip.on b{color:var(--ink)}
 
 /* Appointment window card — shows the start–end time + total duration */
@@ -577,7 +579,7 @@ html,body{overflow:hidden} /* the app's own .scroll areas handle scrolling */
 .aw-body{flex:1;min-width:0}
 .aw-body small{display:block;font-family:'Space Grotesk';font-size:9.5px;color:var(--muted);letter-spacing:1px}
 .aw-body b{font-family:'Space Grotesk';font-size:17px;letter-spacing:-.3px}
-.aw-min{flex:none;background:var(--bg);color:var(--gold);font-weight:700;font-size:12px;padding:6px 11px;border-radius:999px}
+.aw-min{flex:none;background:var(--bg);color:var(--gold-ink);font-weight:700;font-size:12px;padding:6px 11px;border-radius:999px}
 
 /* Morning / Afternoon / Evening sections */
 .slot-sec{margin-bottom:20px}
@@ -585,7 +587,7 @@ html,body{overflow:hidden} /* the app's own .scroll areas handle scrolling */
 .slot-wrap{display:flex;flex-wrap:wrap;gap:9px}
 .tslot{width:78px;height:46px;border-radius:14px;background:var(--surface-2);border:1px solid var(--border);
   color:var(--text);font-weight:600;font-size:13px;cursor:pointer}
-.tslot.on{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.tslot.on{background:var(--gold);color:var(--ink);border-color:var(--gold-ink)}
 .slot-msg{text-align:center;color:var(--muted);font-size:13px;font-weight:600;padding:30px 8px}
 .slot-empty{text-align:center;padding:34px 8px;display:flex;flex-direction:column;align-items:center;gap:8px}
 .se-ico{width:64px;height:64px;border-radius:50%;background:var(--surface-2);color:var(--gold-dim);display:grid;place-items:center}
