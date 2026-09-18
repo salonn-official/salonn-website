@@ -80,7 +80,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=35" />
+  <link rel="stylesheet" href="/styles.css?v=36" />
 </head>
 <body>
   <!-- Splash screen (matches the Salonn app: gold ground, dark tile + wordmark) -->
@@ -127,6 +127,8 @@
         <div class="chips" id="cats"></div>
 
         <div id="featured"></div>
+
+        <div id="trending"></div>
 
         <div class="sec-head"><h2>Salons near you</h2><span class="muted" id="count"></span></div>
         <div class="list" id="salonList">
@@ -188,6 +190,22 @@
     </nav>
   </div>
 
+  <!-- Trending look viewer: swipeable images + rate + local salon -->
+  <div id="trendViewer" class="trendview" hidden>
+    <button class="tv-close" id="tvClose">✕</button>
+    <div class="tv-scroll">
+      <div class="tv-carousel" id="tvCarousel"></div>
+      <div class="tv-dots" id="tvDots"></div>
+      <div class="tv-body">
+        <div class="tv-cat" id="tvCat"></div>
+        <div class="tv-rate-label">Rate this look</div>
+        <div class="tv-stars" id="tvStars"></div>
+        <div class="tv-avg" id="tvAvg"></div>
+        <div class="tv-salon" id="tvSalon"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Thank-you screen after a successful payment -->
   <div id="thankYou" class="thankyou" hidden>
     <div class="ty-inner">
@@ -228,7 +246,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  <script src="/app.js?v=35"></script>
+  <script src="/app.js?v=36"></script>
 
   <!-- Vercel Web Analytics (visitor + page-view counts) — static-site snippet -->
   <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>

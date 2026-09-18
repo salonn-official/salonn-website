@@ -484,6 +484,105 @@ function closeReel() {
 }
 $("rvClose").addEventListener("click", closeReel);
 
+/* ── Trending looks ──────────────────────────────────────────────────────── */
+let allTrending = [];
+async function loadTrending() {
+  const { data } = await sb.from("trending_items")
+    .select("id,media_type,media_urls,video_url,rating_sum,rating_count,category:trending_categories(name,sort_order)")
+    .eq("active", true);
+  allTrending = (data || []).sort((a, b) => (a.category?.sort_order || 0) - (b.category?.sort_order || 0));
+  renderTrending();
+}
+const trendAvg = (t) => (t.rating_count > 0 ? t.rating_sum / t.rating_count : 5);
+function trendThumb(t) {
+  const url = (t.media_urls && t.media_urls[0]) || "";
+  if (url) return `<img src="${esc(url)}" loading="lazy">`;
+  if (t.video_url) return `<video src="${esc(t.video_url)}" muted playsinline></video>`;
+  return "";
+}
+function renderTrending() {
+  const el = $("trending");
+  if (!allTrending.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="sec-head"><h2>Trending</h2></div><div class="trend-grid"></div>`;
+  const grid = el.querySelector(".trend-grid");
+  for (const t of allTrending) {
+    const card = document.createElement("div");
+    card.className = "trend-card";
+    card.innerHTML = `<div class="trend-media">${trendThumb(t)}
+      ${(t.media_urls || []).length > 1 ? `<span class="trend-multi">▦</span>` : ""}
+      <span class="trend-star">★ ${trendAvg(t).toFixed(1)}</span></div>
+      <div class="trend-cat">${esc(t.category?.name || "Trending")}</div>`;
+    card.onclick = () => openTrend(t);
+    grid.appendChild(card);
+  }
+}
+
+// Detail: swipeable images + interactive star rating + the local salon to book.
+let trendMyStars = 0;
+async function openTrend(t) {
+  const imgs = (t.media_urls && t.media_urls.length) ? t.media_urls : [];
+  const isVid = t.media_type === "video" && t.video_url && !imgs.length;
+  let i = 0;
+  const car = $("tvCarousel"), dots = $("tvDots");
+  function paint() {
+    if (isVid) { car.innerHTML = `<video src="${esc(t.video_url)}" controls autoplay loop playsinline></video>`; dots.innerHTML = ""; return; }
+    car.innerHTML = `<img src="${esc(imgs[i] || "")}">
+      ${imgs.length > 1 ? `<button class="tv-arrow l" aria-label="Previous"></button><button class="tv-arrow r" aria-label="Next"></button>` : ""}`;
+    dots.innerHTML = imgs.map((_, k) => `<i class="${k === i ? "on" : ""}"></i>`).join("");
+    const l = car.querySelector(".tv-arrow.l"), r = car.querySelector(".tv-arrow.r");
+    if (l) l.onclick = () => { i = (i - 1 + imgs.length) % imgs.length; paint(); };
+    if (r) r.onclick = () => { i = (i + 1) % imgs.length; paint(); };
+  }
+  paint();
+  let sx = 0;
+  car.ontouchstart = (e) => (sx = e.touches[0].clientX);
+  car.ontouchend = (e) => { if (isVid || imgs.length < 2) return; const dx = e.changedTouches[0].clientX - sx; if (dx < -40) { i = (i + 1) % imgs.length; paint(); } else if (dx > 40) { i = (i - 1 + imgs.length) % imgs.length; paint(); } };
+
+  $("tvCat").textContent = t.category?.name || "Trending look";
+  trendMyStars = 0;
+  if (session) {
+    try { const { data } = await sb.from("trending_ratings").select("stars").eq("item_id", t.id).eq("user_id", session.user.id).maybeSingle(); trendMyStars = data?.stars || 0; } catch (_) {}
+  }
+  renderTrendStars(t);
+  renderTrendSalon(t);
+  $("trendViewer").hidden = false;
+  const sc = $("trendViewer").querySelector(".tv-scroll"); if (sc) sc.scrollTop = 0;
+}
+function renderTrendStars(t) {
+  const box = $("tvStars");
+  box.innerHTML = [1, 2, 3, 4, 5].map((n) => `<button class="tv-star${n <= trendMyStars ? " on" : ""}" data-n="${n}">★</button>`).join("");
+  box.querySelectorAll(".tv-star").forEach((b) => (b.onclick = () => rateTrend(t, +b.dataset.n)));
+  $("tvAvg").textContent = t.rating_count > 0 ? `★ ${trendAvg(t).toFixed(1)} · ${t.rating_count} rating${t.rating_count > 1 ? "s" : ""}` : "Be the first to rate";
+}
+async function rateTrend(t, stars) {
+  if (!session) { try { localStorage.setItem("salonn_pending_trend", t.id); } catch (_) {} closeTrend(); openAuth("trend"); return; }
+  trendMyStars = stars;
+  try {
+    await sb.from("trending_ratings").upsert({ item_id: t.id, user_id: session.user.id, stars }, { onConflict: "item_id,user_id" });
+    const { data } = await sb.from("trending_items").select("rating_sum,rating_count").eq("id", t.id).maybeSingle();
+    if (data) { t.rating_sum = data.rating_sum; t.rating_count = data.rating_count; }
+  } catch (_) {}
+  renderTrendStars(t); renderTrending();
+  toast("Thanks for rating!");
+}
+function renderTrendSalon(t) {
+  const list = (typeof salonInArea === "function") ? allSalons.filter(salonInArea) : allSalons;
+  const s = list[0] || allSalons[0];
+  const el = $("tvSalon");
+  if (!s) { el.innerHTML = ""; return; }
+  const logo = s.image_url ? `<img class="tv-slogo" src="${esc(s.image_url)}">` : `<span class="brand-mark small">S</span>`;
+  el.innerHTML = `${logo}<div class="tv-sinfo"><b>${esc(s.name)}</b><small>${esc([s.area, s.city].filter(Boolean).join(", ") || "Nearby")}</small></div>
+    <button class="btn gold tv-book">Book</button>`;
+  el.querySelector(".tv-book").onclick = () => { closeTrend(); openSalon(s); };
+}
+function closeTrend() { $("trendViewer").hidden = true; $("tvCarousel").innerHTML = ""; }
+async function openTrendById(id) {
+  if (!allTrending.length) await loadTrending();
+  const t = allTrending.find((x) => x.id === id);
+  if (t) openTrend(t);
+}
+$("tvClose").addEventListener("click", closeTrend);
+
 /* ── Salon detail ── */
 async function openSalon(s) {
   selectedServices = [];
@@ -1176,9 +1275,11 @@ async function afterAuth(sess) {
   const cur = document.querySelector(".tab.active")?.dataset.tab;
   if (cur === "profile") renderProfile();
   if (cur === "bookings") renderBookings();
-  // Came here to like/comment a post → reopen it now that they're logged in.
+  // Came here to like/comment a post, or rate a trending look → reopen it.
   let pend = null; try { pend = localStorage.getItem("salonn_pending_reel"); } catch (_) {}
   if (pend) { try { localStorage.removeItem("salonn_pending_reel"); } catch (_) {} openReelById(pend); }
+  let pendT = null; try { pendT = localStorage.getItem("salonn_pending_trend"); } catch (_) {}
+  if (pendT) { try { localStorage.removeItem("salonn_pending_trend"); } catch (_) {} openTrendById(pendT); }
 }
 
 /* ── Phone capture at booking time ── */
@@ -1243,6 +1344,7 @@ async function applySocial(root) {
  * app. Only when nothing is open on the Home tab does Back finally exit.       */
 function closeTopLayer() {
   if (!$("phoneModal").hidden) { $("phoneModal").hidden = true; if (phoneResolve) { phoneResolve(false); phoneResolve = null; } return true; }
+  if (!$("trendViewer").hidden) { closeTrend(); return true; }
   if (!$("thankYou").hidden) { closeThankYou(); show("bookings"); return true; }
   if (!$("sheetModal").hidden) { closeSheet(); return true; }
   if (!$("authModal").hidden) { $("authModal").hidden = true; return true; }
@@ -1302,11 +1404,12 @@ const _q = new URLSearchParams(location.search).get("q");
 if (_q) { const si = $("searchInput"); if (si) si.value = _q; }
 
 loadSalons();   // show salons immediately (applies ?q= filter if present)
+loadTrending(); // trending looks section
 askLocation();  // auto-trigger the browser's native location permission prompt
 
 // A pending "reopen this post after login" only survives across the Google
 // redirect; on any normal load, drop it so it can't fire later unexpectedly.
-if (!OAUTH_RETURN) { try { localStorage.removeItem("salonn_pending_reel"); } catch (_) {} }
+if (!OAUTH_RETURN) { try { localStorage.removeItem("salonn_pending_reel"); localStorage.removeItem("salonn_pending_trend"); } catch (_) {} }
 
 // Deep link: a shared /s/<name>-<id> (or legacy /?salon=<id>) opens that salon.
 function salonIdFromUrl() {
