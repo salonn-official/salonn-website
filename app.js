@@ -500,8 +500,9 @@ function trendThumb(t) {
   if (t.video_url) return `<video src="${esc(t.video_url)}" muted playsinline></video>`;
   return "";
 }
-function starIcons(avg) {
-  const n = Math.round(avg);
+// Stars reflect the ACTUAL customer average (0 filled when no one has rated).
+function starIcons(t) {
+  const n = t.rating_count > 0 ? Math.round(t.rating_sum / t.rating_count) : 0;
   let s = "";
   for (let k = 1; k <= 5; k++) s += `<span${k <= n ? "" : ' class="off"'}>★</span>`;
   return s;
@@ -514,8 +515,7 @@ function renderTrending() {
   for (const t of allTrending) {
     const card = document.createElement("div");
     card.className = "trend-card";
-    card.innerHTML = `${trendThumb(t)}
-      <div class="trend-stars">${starIcons(trendAvg(t))}</div>
+    card.innerHTML = `<div class="trend-media">${trendThumb(t)}<div class="trend-stars">${starIcons(t)}</div></div>
       <div class="trend-cat">${esc(t.category?.name || "Trending")}</div>`;
     card.onclick = () => openTrend(t);
     grid.appendChild(card);
@@ -552,6 +552,8 @@ async function openTrend(t) {
   renderTrendSalon(t);
   $("trendViewer").hidden = false;
   const sc = $("trendViewer").querySelector(".tv-scroll"); if (sc) sc.scrollTop = 0;
+  document.title = `${t.category?.name || "Trending"} — Salonn`;
+  try { history.replaceState(null, "", `/trending/${slugify(t.category?.name || "look")}-${t.id}`); } catch (_) {}
 }
 function renderTrendStars(t) {
   const box = $("tvStars");
@@ -580,7 +582,14 @@ function renderTrendSalon(t) {
     <button class="btn gold tv-book">Book</button>`;
   el.querySelector(".tv-book").onclick = () => { closeTrend(); openSalon(s); };
 }
-function closeTrend() { $("trendViewer").hidden = true; $("tvCarousel").innerHTML = ""; }
+function closeTrend() {
+  $("trendViewer").hidden = true; $("tvCarousel").innerHTML = "";
+  document.title = DEFAULT_TITLE;
+  if (location.pathname.startsWith("/trending")) {
+    const cur = document.querySelector(".tab.active")?.dataset.tab || "home";
+    try { history.replaceState(null, "", TAB_PATH[cur] || "/"); } catch (_) {}
+  }
+}
 async function openTrendById(id) {
   if (!allTrending.length) await loadTrending();
   const t = allTrending.find((x) => x.id === id);
@@ -792,9 +801,11 @@ async function loadGallery(id) {
   };
 }
 async function loadServices(id) {
+  const el = $("svcList");
+  // Services (and prices) are visible only to logged-in customers.
+  if (!session) { renderServiceGate(); return; }
   const { data, error } = await sb.from("services")
     .select("id,name,price,duration_minutes,category,active").eq("salon_id", id);
-  const el = $("svcList");
   const rows = (data || []).filter((s) => s.active !== false);
   if (error || !rows.length) { el.innerHTML = `<div class="empty">No services listed.</div>`; return; }
   el.innerHTML = "";
@@ -811,6 +822,22 @@ async function loadServices(id) {
     });
     el.appendChild(row);
   }
+}
+// Blurred placeholder + login overlay shown to logged-out visitors.
+function renderServiceGate() {
+  const rows = [["Haircut", "45 min"], ["Beard Trim", "20 min"], ["Hair Colour", "60 min"]]
+    .map(([n, d]) => `<div class="svc"><div class="svc-info"><b>${n}</b><small>${d}</small></div><div class="svc-price">₹••</div></div>`).join("");
+  $("svcList").innerHTML = `
+    <div class="svc-gate">
+      <div class="svc-gate-rows">${rows}</div>
+      <div class="svc-gate-panel">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" class="svc-lock"><path d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5Zm3 8H9V6a3 3 0 0 1 6 0v3Z"/></svg>
+        <b>Log in to see services &amp; prices</b>
+        <p class="muted small">Continue with Google to view services and book your appointment.</p>
+        <button class="btn google-btn" id="svcGoogle">${GOOGLE_G_SVG}<span>Continue with Google</span></button>
+      </div>
+    </div>`;
+  const g = $("svcGoogle"); if (g) g.onclick = googleLogin;
 }
 async function bookNow(s) {
   if (!session) { openAuth("book"); return; }
@@ -1240,6 +1267,8 @@ const GOOGLE_G_SVG = `<svg viewBox="0 0 48 48" width="20" height="20" aria-hidde
 $("authModal").addEventListener("click", (e) => { if (e.target.id === "authModal") closeAuth(); });
 function closeAuth() { $("authModal").hidden = true; }
 function openAuth(_reason) { renderAuthLogin(); $("authModal").hidden = false; }
+// Return to the SAME page after Google (so a gated salon/trend reopens itself).
+function googleLogin() { return sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } }); }
 
 function renderAuthLogin() {
   $("authBody").innerHTML = `
@@ -1249,7 +1278,7 @@ function renderAuthLogin() {
     <p class="muted">Continue with your Google account to book appointments.</p>
     <button class="btn google-btn block" id="googleBtn">${GOOGLE_G_SVG}<span>Continue with Google</span></button>
     <p class="muted small" style="margin-top:16px;text-align:center">New to Salonn? We'll create your account automatically.</p>`;
-  $("googleBtn").addEventListener("click", () => sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin } }));
+  $("googleBtn").addEventListener("click", googleLogin);
 }
 
 // Save the fetched location parts to the customer's row.
@@ -1421,15 +1450,20 @@ function salonIdFromUrl() {
   const m = location.pathname.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
   return m ? m[0] : new URLSearchParams(location.search).get("salon");
 }
-const _salon = salonIdFromUrl();
-if (_salon) {
-  openSalonById(_salon);
+const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+const _path = location.pathname.replace(/\/+$/, "");
+if (_path.startsWith("/trending")) {
+  const m = _path.match(UUID_RE); if (m) openTrendById(m[0]);
 } else {
-  // Section deep links (real URLs → help Google build sitelinks).
-  const path = location.pathname.replace(/\/+$/, "");
-  if (path === "/home") show("home");
-  else if (path === "/explore") show("explore");
-  else if (path === "/bookings") show("bookings");
-  else if (path === "/profile") show("profile");
-  else if (path === "/login") openAuth("login");
+  const _salon = salonIdFromUrl();
+  if (_salon) {
+    openSalonById(_salon);
+  } else {
+    // Section deep links (real URLs → help Google build sitelinks).
+    if (_path === "/home") show("home");
+    else if (_path === "/explore") show("explore");
+    else if (_path === "/bookings") show("bookings");
+    else if (_path === "/profile") show("profile");
+    else if (_path === "/login") openAuth("login");
+  }
 }

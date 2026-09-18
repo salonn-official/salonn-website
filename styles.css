@@ -175,6 +175,16 @@ input,button{font-family:inherit}
 .svc-check{width:24px;height:24px;border-radius:7px;border:1.5px solid var(--border-strong);display:grid;place-items:center;color:transparent}
 .svc.on .svc-check{background:var(--gold);border-color:var(--gold-ink);color:var(--ink)}
 
+/* Services locked for logged-out visitors: blurred rows + Google login panel */
+.svc-gate{position:relative;min-height:230px}
+.svc-gate-rows{filter:blur(6px);pointer-events:none;user-select:none;opacity:.7}
+.svc-gate-panel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;gap:8px;padding:20px;background:linear-gradient(var(--bg),transparent 12%,transparent 88%,var(--bg))}
+.svc-lock{color:var(--gold-ink)}
+.svc-gate-panel b{font-family:'Space Grotesk';font-size:17px}
+.svc-gate-panel p{max-width:260px}
+.svc-gate-panel .google-btn{margin-top:8px;min-width:230px}
+
 /* ── Featured salon (top of Home) ── */
 .featured{margin-bottom:18px}
 .fcard{position:relative;border-radius:22px;overflow:hidden;cursor:pointer;aspect-ratio:16/11;
@@ -443,19 +453,20 @@ input,button{font-family:inherit}
 .ex-sec .reel-grid{margin:0}
 
 /* ── Trending looks ── */
-/* Masonry so each photo shows in FULL (never cropped); the black category
-   box sits below the image inside the rounded card. */
-.trend-grid{columns:2;column-gap:12px;margin-bottom:14px}
-@media(min-width:640px){.trend-grid{columns:3}}
-@media(min-width:960px){.trend-grid{columns:4}}
-.trend-card{break-inside:avoid;margin-bottom:12px;position:relative;display:block;cursor:pointer;
+/* Uniform-size cards in a horizontal swipe row; photo shown in FULL (contain,
+   never cropped) with the black category box below. */
+.trend-grid{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px;
+  scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.trend-grid::-webkit-scrollbar{display:none}
+.trend-card{flex:0 0 auto;width:156px;scroll-snap-align:start;position:relative;display:block;cursor:pointer;
   border-radius:18px;overflow:hidden;background:#000;box-shadow:0 4px 16px rgba(0,0,0,.14)}
 .trend-card:active{transform:scale(.99)}
-.trend-card img,.trend-card video{width:100%;height:auto;display:block}
-.trend-stars{position:absolute;top:9px;right:10px;z-index:2;display:flex;gap:1px;color:#ffd700;font-size:15px;
+.trend-media{position:relative;width:100%;aspect-ratio:3/4;background:#000}
+.trend-media img,.trend-media video{width:100%;height:100%;object-fit:contain}
+.trend-stars{position:absolute;top:8px;right:9px;z-index:2;display:flex;gap:1px;color:#ffd700;font-size:14px;
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.65))}
-.trend-stars .off{color:rgba(255,255,255,.55)}
-.trend-cat{background:#000;color:#fff;text-align:center;font-weight:800;font-size:15.5px;padding:14px 10px}
+.trend-stars .off{color:rgba(255,255,255,.5)}
+.trend-cat{background:#000;color:#fff;text-align:center;font-weight:800;font-size:14px;padding:12px 8px}
 
 /* Trending detail viewer */
 .trendview{position:fixed;inset:0;z-index:85;background:var(--bg)}
