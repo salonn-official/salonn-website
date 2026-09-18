@@ -3,12 +3,25 @@
   --border-strong:#3a3a3a; --text:#f5f5f5; --muted:#a3a3a3; --muted-2:#7d7d7d;
   --gold:#ffd700; --gold-dim:#d9b400; --ink:#141414; --red:#ff4d4d;
   --green:#4ade80; --star:#ffc531; --tabh:64px;
+  --page:#000; --page-grad:radial-gradient(80% 60% at 50% 0%,#161616,#000);
+  color-scheme:dark;
+}
+/* Light theme — follows the browser/OS preference automatically */
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:#ffffff; --surface:#f7f8f9; --surface-2:#eceef1; --border:#e4e7ea;
+    --border-strong:#d2d6da; --text:#181a1e; --muted:#565b63; --muted-2:#8a9099;
+    --gold:#c99700; --gold-dim:#a87e00; --ink:#141414; --red:#e5484d;
+    --green:#2f9e44; --star:#e0a400;
+    --page:#e9ebee; --page-grad:radial-gradient(80% 60% at 50% 0%,#f3f4f6,#e4e7ea);
+    color-scheme:light;
+  }
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 html,body{height:100%}
 body{
-  background:#000;color:var(--text);
+  background:var(--page);color:var(--text);
   font-family:'Manrope',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
   -webkit-font-smoothing:antialiased;
 }
@@ -23,7 +36,7 @@ input,button{font-family:inherit}
   min-height:100dvh;background:var(--bg);overflow:hidden;
 }
 @media(min-width:480px){
-  body{background:radial-gradient(80% 60% at 50% 0%,#161616,#000)}
+  body{background:var(--page-grad)}
   .app{margin:0 auto;min-height:100vh;box-shadow:0 0 0 1px var(--border),0 30px 80px rgba(0,0,0,.6)}
 }
 
