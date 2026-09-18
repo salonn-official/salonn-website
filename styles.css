@@ -386,7 +386,9 @@ input,button{font-family:inherit}
 .ty-mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted)}
 .ty-note{margin-top:14px;line-height:1.5}
 
-.reelview{position:fixed;inset:0;z-index:80;background:#000}
+/* Stops above the fixed bottom nav so the tab bar stays visible while
+   viewing a post (Instagram-style), without covering the photo. */
+.reelview{position:fixed;inset:0 0 calc(var(--tabh) + env(safe-area-inset-bottom)) 0;z-index:28;background:#000}
 .reelview[hidden]{display:none!important}
 .rv-close{position:absolute;top:calc(11px + env(safe-area-inset-top));left:12px;z-index:5;width:40px;height:40px;
   border-radius:50%;background:none;border:none;color:#fff;cursor:pointer;display:grid;place-items:center}
@@ -403,7 +405,7 @@ input,button{font-family:inherit}
 .rv-dots{position:absolute;bottom:104px;left:0;right:0;display:flex;justify-content:center;gap:5px;z-index:3}
 .rv-dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5)}
 .rv-dots i.on{width:16px;border-radius:4px;background:#fff}
-.rv-info{position:absolute;left:0;right:0;bottom:0;padding:18px 76px calc(24px + env(safe-area-inset-bottom)) 18px;
+.rv-info{position:absolute;left:0;right:0;bottom:0;padding:18px 76px 20px 18px;
   background:linear-gradient(transparent,rgba(0,0,0,.85));color:#fff;z-index:3}
 .rv-salon{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px}
 .rv-salon .bk{margin-left:auto;background:var(--gold);color:var(--ink);border:none;border-radius:999px;

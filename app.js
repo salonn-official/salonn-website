@@ -49,6 +49,7 @@ function toast(msg) {
 const screens = { home: "screen-home", explore: "screen-explore", bookings: "screen-bookings", profile: "screen-profile" };
 const TAB_PATH = { home: "/home", explore: "/explore", bookings: "/bookings", profile: "/profile" };
 function show(tab) {
+  if (!$("reelViewer").hidden) closeReel(); // leaving a post via the tab bar
   for (const k in screens) $(screens[k]).hidden = k !== tab;
   if (!$("screen-detail").hidden) document.title = DEFAULT_TITLE; // leaving a salon
   $("screen-detail").hidden = true;
