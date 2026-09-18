@@ -500,6 +500,12 @@ function trendThumb(t) {
   if (t.video_url) return `<video src="${esc(t.video_url)}" muted playsinline></video>`;
   return "";
 }
+function starIcons(avg) {
+  const n = Math.round(avg);
+  let s = "";
+  for (let k = 1; k <= 5; k++) s += `<span${k <= n ? "" : ' class="off"'}>★</span>`;
+  return s;
+}
 function renderTrending() {
   const el = $("trending");
   if (!allTrending.length) { el.innerHTML = ""; return; }
@@ -508,9 +514,8 @@ function renderTrending() {
   for (const t of allTrending) {
     const card = document.createElement("div");
     card.className = "trend-card";
-    card.innerHTML = `<div class="trend-media">${trendThumb(t)}
-      ${(t.media_urls || []).length > 1 ? `<span class="trend-multi">▦</span>` : ""}
-      <span class="trend-star">★ ${trendAvg(t).toFixed(1)}</span></div>
+    card.innerHTML = `${trendThumb(t)}
+      <div class="trend-stars">${starIcons(trendAvg(t))}</div>
       <div class="trend-cat">${esc(t.category?.name || "Trending")}</div>`;
     card.onclick = () => openTrend(t);
     grid.appendChild(card);
