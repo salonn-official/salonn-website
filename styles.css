@@ -443,15 +443,19 @@ input,button{font-family:inherit}
 .ex-sec .reel-grid{margin:0}
 
 /* ── Trending looks ── */
-.trend-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
-.trend-card{position:relative;aspect-ratio:4/5;border-radius:20px;overflow:hidden;cursor:pointer;background:var(--surface-2)}
-.trend-card:active{transform:scale(.98)}
-.trend-card img,.trend-card video{width:100%;height:100%;object-fit:cover}
-.trend-stars{position:absolute;top:10px;right:10px;display:flex;gap:1px;color:#ffd700;font-size:15px;
-  filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+/* Masonry so each photo shows in FULL (never cropped); the black category
+   box sits below the image inside the rounded card. */
+.trend-grid{columns:2;column-gap:12px;margin-bottom:14px}
+@media(min-width:640px){.trend-grid{columns:3}}
+@media(min-width:960px){.trend-grid{columns:4}}
+.trend-card{break-inside:avoid;margin-bottom:12px;position:relative;display:block;cursor:pointer;
+  border-radius:18px;overflow:hidden;background:#000;box-shadow:0 4px 16px rgba(0,0,0,.14)}
+.trend-card:active{transform:scale(.99)}
+.trend-card img,.trend-card video{width:100%;height:auto;display:block}
+.trend-stars{position:absolute;top:9px;right:10px;z-index:2;display:flex;gap:1px;color:#ffd700;font-size:15px;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.65))}
 .trend-stars .off{color:rgba(255,255,255,.55)}
-.trend-cat{position:absolute;left:0;right:0;bottom:0;background:#000;color:#fff;text-align:center;
-  font-weight:800;font-size:15px;padding:13px 10px;border-radius:20px 20px 0 0}
+.trend-cat{background:#000;color:#fff;text-align:center;font-weight:800;font-size:15.5px;padding:14px 10px}
 
 /* Trending detail viewer */
 .trendview{position:fixed;inset:0;z-index:85;background:var(--bg)}
