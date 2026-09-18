@@ -384,8 +384,8 @@ input,button{font-family:inherit}
 
 .reelview{position:fixed;inset:0;z-index:80;background:#000}
 .reelview[hidden]{display:none!important}
-.rv-close{position:absolute;top:calc(14px + env(safe-area-inset-top));left:14px;z-index:5;width:40px;height:40px;
-  border-radius:50%;background:rgba(0,0,0,.5);border:none;color:#fff;font-size:16px;cursor:pointer;backdrop-filter:blur(4px)}
+.rv-close{position:absolute;top:calc(11px + env(safe-area-inset-top));left:12px;z-index:5;width:40px;height:40px;
+  border-radius:50%;background:none;border:none;color:#fff;cursor:pointer;display:grid;place-items:center}
 /* Vertical scroll-snap feed — swipe up/down between posts, like Instagram */
 .rv-feed{height:100%;width:100%;max-width:440px;margin:0 auto;overflow-y:scroll;overflow-x:hidden;
   scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
@@ -410,7 +410,7 @@ input,button{font-family:inherit}
 /* Post top bar: solid black, full-width, deep curved bottom corners */
 .rv-topbar{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;align-items:center;justify-content:center;gap:10px;
   padding:calc(14px + env(safe-area-inset-top)) 16px 16px;color:#fff;
-  background:#000;border-radius:34px 34px 0 0;box-shadow:0 10px 26px rgba(0,0,0,.5)}
+  background:#000;border-radius:0 0 40px 40px;box-shadow:0 8px 22px rgba(0,0,0,.45)}
 .rv-logo{width:30px;height:30px;border-radius:9px;flex:none;display:block}
 .rv-brand{display:flex;flex-direction:column;line-height:1.15}
 .rv-brand b{font-family:'Space Grotesk';font-size:15px}
