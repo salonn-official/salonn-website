@@ -72,8 +72,8 @@ input,button{font-family:inherit}
   animation:spOut .5s ease 2.1s forwards}
 .splash.hide{display:none!important}
 .sp-center{display:flex;flex-direction:column;align-items:center}
-.sp-logo{width:104px;height:104px;border-radius:30px;color:transparent;font-size:0;overflow:hidden;
-  background:#ffd60a url(/icon-192.png?v=4) center/cover no-repeat;
+.sp-logo{width:104px;height:104px;border-radius:30px;background:var(--ink);color:var(--gold);
+  display:grid;place-items:center;font-family:'Space Grotesk';font-weight:700;font-size:62px;letter-spacing:-2px;
   box-shadow:0 14px 30px rgba(0,0,0,.28);animation:spPop .6s cubic-bezier(.34,1.56,.64,1) both}
 .sp-word{display:flex;margin-top:28px;font-family:'Space Grotesk';font-weight:700;font-size:52px;
   letter-spacing:-1.5px;color:var(--ink)}
@@ -581,9 +581,9 @@ input,button{font-family:inherit}
 html,body{overflow:hidden} /* the app's own .scroll areas handle scrolling */
 
 /* ── Brand mark base + nav logo ── */
-/* Real Salonn app logo (black tile + gold S on yellow) instead of a CSS letter */
+/* Original Salonn logo (yellow tile + black S) instead of a CSS letter */
 .brand-mark{width:34px;height:34px;border-radius:10px;flex:none;
-  background:#ffd60a url(/icon-192.png?v=4) center/cover no-repeat;
+  background:#ffd60a url(/favicon-192.png?v=3) center/cover no-repeat;
   color:transparent;font-size:0;overflow:hidden}
 .brand-mark.small{width:28px;height:28px;border-radius:8px}
 .tb-brand{display:none;align-items:center;gap:9px;color:var(--text);

@@ -433,7 +433,7 @@ function buildReelSlide(r) {
   const slide = document.createElement("div"); slide.className = "rv-slide";
 
   const top = document.createElement("div"); top.className = "rv-topbar";
-  top.innerHTML = `<img class="rv-logo" src="/icon-192.png?v=4" alt="Salonn" width="30" height="30"><div class="rv-brand"><b>Salonn</b><small>Hairstyle &amp; Grooming</small></div>`;
+  top.innerHTML = `<img class="rv-logo" src="/favicon-192.png?v=3" alt="Salonn" width="30" height="30"><div class="rv-brand"><b>Salonn</b><small>Hairstyle &amp; Grooming</small></div>`;
 
   const media = document.createElement("div"); media.className = "rv-media";
   const dots = document.createElement("div"); dots.className = "rv-dots";
