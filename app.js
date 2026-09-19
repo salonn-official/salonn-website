@@ -1461,10 +1461,13 @@ if (_path.startsWith("/trending")) {
     openSalonById(_salon);
   } else {
     // Section deep links (real URLs → help Google build sitelinks).
-    if (_path === "/home") show("home");
-    else if (_path === "/explore") show("explore");
+    // Any landing that isn't a specific section resolves to the homepage,
+    // and show() writes the matching path so the address bar always reflects
+    // the current page (root "/" becomes "/home", just like a normal site).
+    if (_path === "/explore") show("explore");
     else if (_path === "/bookings") show("bookings");
     else if (_path === "/profile") show("profile");
-    else if (_path === "/login") openAuth("login");
+    else if (_path === "/login") openAuth("login"); // home shows behind, URL stays /login
+    else show("home"); // "", "/", "/home", or anything unknown
   }
 }
