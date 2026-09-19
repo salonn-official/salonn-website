@@ -27,6 +27,11 @@ const SOCIAL_SVG = {
 };
 let session = null, userPos = null, allSalons = [], reelsLoaded = false;
 let activeCat = "All", selectedServices = [], userArea = null, salonCats = {}, userGeo = null;
+// Location scope: how the "Salons near you" list is filtered.
+//   locMode "area"   → salons in `selectedArea` (defaults to the GPS area)
+//   locMode "radius" → salons within `radiusKm` of the user's GPS position
+//   locMode "all"    → every area
+let locMode = "area", selectedArea = null, radiusKm = 10;
 
 // Category chip → the words that identify it in a salon's service list.
 // (DB categories are Hair/Skin/… so we match by keyword, not exact label.)
@@ -68,7 +73,7 @@ document.querySelectorAll(".tab, .tb-brand").forEach((b) => b.addEventListener("
 setTimeout(() => { const sp = $("splash"); if (sp) sp.classList.add("hide"); }, 2600);
 
 /* ── Location + salons ── */
-$("locBtn").addEventListener("click", askLocation);
+$("locBtn").addEventListener("click", openLocSheet);
 
 function askLocation() {
   if (!navigator.geolocation) { loadSalons(); return; }
@@ -103,20 +108,48 @@ async function reverseGeocode(lat, lng) {
       pincode: pin ? pin[0] : null,
       latitude: lat, longitude: lng,
     };
+    // A fresh GPS fix means "show me where I am": snap the scope to my area.
+    selectedArea = userArea;
+    locMode = "area";
     $("locLabel").textContent = userArea || "Near you";
   } catch { $("locLabel").textContent = "Near you"; }
   renderSalons(); // re-filter to the customer's area now that it's known
 }
+// What the location button should read for the current scope.
+function locLabelText() {
+  if (locMode === "all") return "All areas";
+  if (locMode === "radius") return `Within ${radiusKm} km`;
+  return selectedArea || userArea || "Enable location";
+}
 // Salon belongs to the customer's area — same rule as the app, which treats the
 // salon's `city` (falling back to address/area) as its area name. Substring
 // match both ways; never hide a salon whose location isn't set.
-function salonInArea(s) {
-  if (!userArea) return true;                 // area unknown → show all (app parity)
+function salonInScope(s) {
+  if (locMode === "all") return true;
+  if (locMode === "radius") {
+    if (!userPos) return true;                // no GPS fix → can't measure, show all
+    if (s.dist == null) return true;          // salon has no coords → don't hide it
+    return s.dist <= radiusKm;
+  }
+  // area mode
+  const area = selectedArea || userArea;
+  if (!area) return true;                     // area unknown → show all (app parity)
   const sa = (s.city || s.area || s.address || "").trim().toLowerCase();
   if (!sa) return true;                       // salon has no location → don't hide it
-  const a = userArea.trim().toLowerCase();
+  const a = area.trim().toLowerCase();
   if (!a) return true;
   return sa === a || sa.includes(a) || a.includes(sa);
+}
+// Distinct areas where approved salons actually exist (for the picker), plus the
+// customer's own GPS area, sorted A→Z.
+function areaOptions() {
+  const seen = new Map();
+  for (const s of allSalons) {
+    const v = (s.city || s.area || "").trim();
+    if (v) seen.set(v.toLowerCase(), v);
+  }
+  if (userArea) seen.set(userArea.toLowerCase(), userArea);
+  return [...seen.values()].sort((a, b) => a.localeCompare(b));
 }
 function distanceKm(a, b, c, d) {
   const R = 6371, r = (x) => (x * Math.PI) / 180, dLat = r(c - a), dLng = r(d - b);
@@ -184,20 +217,34 @@ function renderSalons() {
     const matchesSearch = !q || hay.includes(q) || (salonCats[s.id] || []).some((x) => x.includes(q));
     return matchesSearch && salonHasCat(s, activeCat);
   });
-  // Only salons that serve the customer's fetched area.
-  let list = base.filter(salonInArea);
+  // Salons that fall inside the chosen location scope (area / radius / all).
+  let list = base.filter(salonInScope);
+  // In distance mode, nearest first.
+  if (locMode === "radius") list = [...list].sort((a, b) => (a.dist ?? 9e9) - (b.dist ?? 9e9));
   const feat = $("featured"), el = $("salonList");
 
-  // Area known, salons exist elsewhere, but none here → "We're expanding" page.
-  if (!filtering && userArea && allSalons.length && !list.length) {
+  // Keep the location button in sync with the active scope.
+  $("locLabel").textContent = locLabelText();
+
+  // Area known, salons exist elsewhere, but none in the chosen area → "expanding".
+  const scopeArea = selectedArea || userArea;
+  if (!filtering && locMode === "area" && scopeArea && allSalons.length && !list.length) {
     feat.innerHTML = ""; $("count").textContent = "";
-    el.innerHTML = expandingState(userArea);
+    el.innerHTML = expandingState(scopeArea);
+    const pick = $("expPick"); if (pick) pick.addEventListener("click", openLocSheet);
     const again = $("expCheck"); if (again) again.addEventListener("click", askLocation);
     return;
   }
 
   $("count").textContent = list.length ? `${list.length} found` : "";
-  if (!list.length) { feat.innerHTML = ""; el.innerHTML = `<div class="empty">No salons match. Try another search.</div>`; return; }
+  if (!list.length) {
+    feat.innerHTML = "";
+    const msg = locMode === "radius"
+      ? `No salons within ${radiusKm} km. Try a larger range.`
+      : "No salons match. Try another search.";
+    el.innerHTML = `<div class="empty">${msg}</div>`;
+    return;
+  }
 
   // App-style: one FEATURED salon on top, the rest listed below.
   let rest = list;
@@ -224,12 +271,63 @@ function expandingState(area) {
     <div class="exp-ico"><svg viewBox="0 0 24 24" width="46" height="46" fill="currentColor"><path d="M13.5 2.6c2.6 1 4.6 3 5.6 5.6.8 2.2.7 4.2.2 6-.3 1-.8 2-1.5 3l1.4 3.3-3.2-1a9 9 0 0 1-3 1.2 9.4 9.4 0 0 1-2.7-.1L7 22.1l-.5-3.3a9 9 0 0 1-2.3-2.2C2.3 13.9 2 10.5 3.4 7.6a9.4 9.4 0 0 1 10.1-5ZM12 7a2.4 2.4 0 1 0 0 4.8A2.4 2.4 0 0 0 12 7Z"/></svg></div>
     <h3 class="exp-title">We're expanding!</h3>
     <p class="exp-sub">Salonn isn't in <b>${esc(area)}</b> yet. We're growing fast and will reach your area very soon.</p>
-    <button class="exp-btn" id="expCheck">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 5V2L8 6l4 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7Z"/></svg>
-      Check again
+    <button class="exp-btn" id="expPick">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>
+      Choose another area
     </button>
+    <button class="exp-link" id="expCheck">Use my current location</button>
   </div>`;
 }
+/* ── Location picker: choose current location, a specific area, or a km radius ── */
+const RADII = [5, 10, 25, 50];
+function openLocSheet() { renderLocSheet(); $("locModal").hidden = false; }
+function closeLoc() { $("locModal").hidden = true; }
+function renderLocSheet() {
+  const areas = areaOptions();
+  const areaChips = areas.length
+    ? areas.map((a) => {
+        const on = locMode === "area" && (selectedArea || userArea || "").toLowerCase() === a.toLowerCase();
+        return `<button class="loc-chip${on ? " on" : ""}" data-area="${esc(a)}">${esc(a)}</button>`;
+      }).join("")
+    : `<span class="muted small">Areas appear once salons load.</span>`;
+  const allOn = locMode === "all" ? " on" : "";
+  const radiusChips = RADII.map((k) => {
+    const on = locMode === "radius" && radiusKm === k ? " on" : "";
+    return `<button class="loc-chip${on}" data-km="${k}">${k} km</button>`;
+  }).join("");
+  const geoNote = userPos ? "" : `<p class="muted small loc-note">Enable location to use distance.</p>`;
+
+  $("locBody").innerHTML = `
+    <button class="sheet-close" id="locX" aria-label="Close">✕</button>
+    <h3 class="loc-title">Choose location</h3>
+    <button class="loc-current" id="locUseGps">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 3a1 1 0 0 1 0 2h-2.06a7 7 0 0 1-5.94 5.94V21a1 1 0 0 1-2 0v-2.06A7 7 0 0 1 5.06 13H3a1 1 0 0 1 0-2h2.06A7 7 0 0 1 11 5.06V3a1 1 0 0 1 2 0v2.06A7 7 0 0 1 18.94 11H21ZM12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/></svg>
+      Use my current location
+    </button>
+    <div class="loc-sec-t">Areas</div>
+    <div class="loc-chips">
+      <button class="loc-chip${allOn}" data-all="1">All areas</button>
+      ${areaChips}
+    </div>
+    <div class="loc-sec-t">Distance from me</div>
+    <div class="loc-chips">${radiusChips}</div>
+    ${geoNote}
+  `;
+
+  $("locX").addEventListener("click", closeLoc);
+  $("locUseGps").addEventListener("click", () => { closeLoc(); askLocation(); });
+  $("locBody").querySelectorAll("[data-area]").forEach((b) =>
+    b.addEventListener("click", () => { locMode = "area"; selectedArea = b.dataset.area; closeLoc(); renderSalons(); }));
+  $("locBody").querySelector("[data-all]").addEventListener("click", () => {
+    locMode = "all"; closeLoc(); renderSalons();
+  });
+  $("locBody").querySelectorAll("[data-km]").forEach((b) =>
+    b.addEventListener("click", () => {
+      if (!userPos) { toast("Enable location first to use distance."); askLocation(); return; }
+      locMode = "radius"; radiusKm = Number(b.dataset.km); closeLoc(); renderSalons();
+    }));
+}
+
 $("searchInput").addEventListener("input", renderSalons);
 
 /* categories */
@@ -1379,6 +1477,7 @@ async function applySocial(root) {
  * app. Only when nothing is open on the Home tab does Back finally exit.       */
 function closeTopLayer() {
   if (!$("phoneModal").hidden) { $("phoneModal").hidden = true; if (phoneResolve) { phoneResolve(false); phoneResolve = null; } return true; }
+  if (!$("locModal").hidden) { closeLoc(); return true; }
   if (!$("trendViewer").hidden) { closeTrend(); return true; }
   if (!$("thankYou").hidden) { closeThankYou(); show("bookings"); return true; }
   if (!$("sheetModal").hidden) { closeSheet(); return true; }
