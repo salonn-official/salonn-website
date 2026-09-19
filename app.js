@@ -27,11 +27,9 @@ const SOCIAL_SVG = {
 };
 let session = null, userPos = null, allSalons = [], reelsLoaded = false;
 let activeCat = "All", selectedServices = [], userArea = null, salonCats = {}, userGeo = null;
-// Location scope: how the "Salons near you" list is filtered.
-//   locMode "area"   → salons in `selectedArea` (defaults to the GPS area)
-//   locMode "radius" → salons within `radiusKm` of the user's GPS position
-//   locMode "all"    → every area
-let locMode = "area", selectedArea = null, radiusKm = 10;
+// The area the salon list is filtered to. Defaults to the GPS-resolved area,
+// and can be changed from the location search modal (type a city / use GPS).
+let selectedArea = null;
 
 // Category chip → the words that identify it in a salon's service list.
 // (DB categories are Hair/Skin/… so we match by keyword, not exact label.)
@@ -108,30 +106,20 @@ async function reverseGeocode(lat, lng) {
       pincode: pin ? pin[0] : null,
       latitude: lat, longitude: lng,
     };
-    // A fresh GPS fix means "show me where I am": snap the scope to my area.
+    // A fresh GPS fix means "show me where I am": snap the area to my location.
     selectedArea = userArea;
-    locMode = "area";
     $("locLabel").textContent = userArea || "Near you";
   } catch { $("locLabel").textContent = "Near you"; }
   renderSalons(); // re-filter to the customer's area now that it's known
 }
-// What the location button should read for the current scope.
+// What the location button should read.
 function locLabelText() {
-  if (locMode === "all") return "All areas";
-  if (locMode === "radius") return `Within ${radiusKm} km`;
   return selectedArea || userArea || "Enable location";
 }
 // Salon belongs to the customer's area — same rule as the app, which treats the
 // salon's `city` (falling back to address/area) as its area name. Substring
 // match both ways; never hide a salon whose location isn't set.
 function salonInScope(s) {
-  if (locMode === "all") return true;
-  if (locMode === "radius") {
-    if (!userPos) return true;                // no GPS fix → can't measure, show all
-    if (s.dist == null) return true;          // salon has no coords → don't hide it
-    return s.dist <= radiusKm;
-  }
-  // area mode
   const area = selectedArea || userArea;
   if (!area) return true;                     // area unknown → show all (app parity)
   const sa = (s.city || s.area || s.address || "").trim().toLowerCase();
@@ -139,17 +127,6 @@ function salonInScope(s) {
   const a = area.trim().toLowerCase();
   if (!a) return true;
   return sa === a || sa.includes(a) || a.includes(sa);
-}
-// Distinct areas where approved salons actually exist (for the picker), plus the
-// customer's own GPS area, sorted A→Z.
-function areaOptions() {
-  const seen = new Map();
-  for (const s of allSalons) {
-    const v = (s.city || s.area || "").trim();
-    if (v) seen.set(v.toLowerCase(), v);
-  }
-  if (userArea) seen.set(userArea.toLowerCase(), userArea);
-  return [...seen.values()].sort((a, b) => a.localeCompare(b));
 }
 function distanceKm(a, b, c, d) {
   const R = 6371, r = (x) => (x * Math.PI) / 180, dLat = r(c - a), dLng = r(d - b);
@@ -217,18 +194,16 @@ function renderSalons() {
     const matchesSearch = !q || hay.includes(q) || (salonCats[s.id] || []).some((x) => x.includes(q));
     return matchesSearch && salonHasCat(s, activeCat);
   });
-  // Salons that fall inside the chosen location scope (area / radius / all).
+  // Salons that serve the chosen area.
   let list = base.filter(salonInScope);
-  // In distance mode, nearest first.
-  if (locMode === "radius") list = [...list].sort((a, b) => (a.dist ?? 9e9) - (b.dist ?? 9e9));
   const feat = $("featured"), el = $("salonList");
 
-  // Keep the location button in sync with the active scope.
+  // Keep the location button in sync with the chosen area.
   $("locLabel").textContent = locLabelText();
 
   // Area known, salons exist elsewhere, but none in the chosen area → "expanding".
   const scopeArea = selectedArea || userArea;
-  if (!filtering && locMode === "area" && scopeArea && allSalons.length && !list.length) {
+  if (!filtering && scopeArea && allSalons.length && !list.length) {
     feat.innerHTML = ""; $("count").textContent = "";
     el.innerHTML = expandingState(scopeArea);
     const pick = $("expPick"); if (pick) pick.addEventListener("click", openLocSheet);
@@ -237,14 +212,7 @@ function renderSalons() {
   }
 
   $("count").textContent = list.length ? `${list.length} found` : "";
-  if (!list.length) {
-    feat.innerHTML = "";
-    const msg = locMode === "radius"
-      ? `No salons within ${radiusKm} km. Try a larger range.`
-      : "No salons match. Try another search.";
-    el.innerHTML = `<div class="empty">${msg}</div>`;
-    return;
-  }
+  if (!list.length) { feat.innerHTML = ""; el.innerHTML = `<div class="empty">No salons match. Try another search.</div>`; return; }
 
   // App-style: one FEATURED salon on top, the rest listed below.
   let rest = list;
@@ -278,54 +246,87 @@ function expandingState(area) {
     <button class="exp-link" id="expCheck">Use my current location</button>
   </div>`;
 }
-/* ── Location picker: choose current location, a specific area, or a km radius ── */
-const RADII = [5, 10, 25, 50];
-function openLocSheet() { renderLocSheet(); $("locModal").hidden = false; }
-function closeLoc() { $("locModal").hidden = true; }
-function renderLocSheet() {
-  const areas = areaOptions();
-  const areaChips = areas.length
-    ? areas.map((a) => {
-        const on = locMode === "area" && (selectedArea || userArea || "").toLowerCase() === a.toLowerCase();
-        return `<button class="loc-chip${on ? " on" : ""}" data-area="${esc(a)}">${esc(a)}</button>`;
-      }).join("")
-    : `<span class="muted small">Areas appear once salons load.</span>`;
-  const allOn = locMode === "all" ? " on" : "";
-  const radiusChips = RADII.map((k) => {
-    const on = locMode === "radius" && radiusKm === k ? " on" : "";
-    return `<button class="loc-chip${on}" data-km="${k}">${k} km</button>`;
-  }).join("");
-  const geoNote = userPos ? "" : `<p class="muted small loc-note">Enable location to use distance.</p>`;
-
+/* ── Location modal: search any city/area (typeahead) or use current GPS ── */
+let locSearchT = null, locSearchSeq = 0;
+function openLocSheet() {
   $("locBody").innerHTML = `
     <button class="sheet-close" id="locX" aria-label="Close">✕</button>
-    <h3 class="loc-title">Choose location</h3>
+    <h3 class="loc-title">Select your location</h3>
+    <div class="loc-search">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M10 4a6 6 0 1 0 3.9 10.6l4.7 4.7 1.4-1.4-4.7-4.7A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"/></svg>
+      <input id="locSearchInput" placeholder="Search for area, city…" autocomplete="off" autocapitalize="words" />
+    </div>
     <button class="loc-current" id="locUseGps">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 3a1 1 0 0 1 0 2h-2.06a7 7 0 0 1-5.94 5.94V21a1 1 0 0 1-2 0v-2.06A7 7 0 0 1 5.06 13H3a1 1 0 0 1 0-2h2.06A7 7 0 0 1 11 5.06V3a1 1 0 0 1 2 0v2.06A7 7 0 0 1 18.94 11H21ZM12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/></svg>
       Use my current location
     </button>
-    <div class="loc-sec-t">Areas</div>
-    <div class="loc-chips">
-      <button class="loc-chip${allOn}" data-all="1">All areas</button>
-      ${areaChips}
-    </div>
-    <div class="loc-sec-t">Distance from me</div>
-    <div class="loc-chips">${radiusChips}</div>
-    ${geoNote}
+    <div class="loc-results" id="locResults"></div>
   `;
-
   $("locX").addEventListener("click", closeLoc);
   $("locUseGps").addEventListener("click", () => { closeLoc(); askLocation(); });
-  $("locBody").querySelectorAll("[data-area]").forEach((b) =>
-    b.addEventListener("click", () => { locMode = "area"; selectedArea = b.dataset.area; closeLoc(); renderSalons(); }));
-  $("locBody").querySelector("[data-all]").addEventListener("click", () => {
-    locMode = "all"; closeLoc(); renderSalons();
+  const input = $("locSearchInput");
+  input.addEventListener("input", () => {
+    clearTimeout(locSearchT);
+    const q = input.value.trim();
+    if (q.length < 2) { $("locResults").innerHTML = ""; return; }
+    $("locResults").innerHTML = `<div class="loc-hint">Searching…</div>`;
+    locSearchT = setTimeout(() => searchPlaces(q), 250);
   });
-  $("locBody").querySelectorAll("[data-km]").forEach((b) =>
-    b.addEventListener("click", () => {
-      if (!userPos) { toast("Enable location first to use distance."); askLocation(); return; }
-      locMode = "radius"; radiusKm = Number(b.dataset.km); closeLoc(); renderSalons();
+  $("locModal").hidden = false;
+  setTimeout(() => input.focus(), 60);
+}
+function closeLoc() { $("locModal").hidden = true; }
+
+// Forward-geocode with Photon (free, CORS, no key), biased to Odisha/India.
+async function searchPlaces(q) {
+  const seq = ++locSearchSeq;
+  try {
+    const r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=6&lang=en&lat=21.47&lon=83.97`);
+    const j = await r.json();
+    if (seq !== locSearchSeq) return; // a newer keystroke already superseded this
+    const feats = (j.features || []).filter((f) => {
+      const cc = f.properties && f.properties.countrycode;
+      return !cc || cc === "IN"; // keep India results
+    });
+    renderLocResults(feats);
+  } catch { if (seq === locSearchSeq) $("locResults").innerHTML = `<div class="loc-hint">Couldn't search. Try again.</div>`; }
+}
+function placeLabel(p) {
+  const main = p.name || p.city || p.district || p.county || p.state || "";
+  const rest = [p.district && p.district !== main ? p.district : (p.city && p.city !== main ? p.city : null),
+    p.state, p.country].filter(Boolean);
+  return { main, sub: [...new Set(rest)].join(", ") };
+}
+function renderLocResults(feats) {
+  const box = $("locResults");
+  if (!feats.length) { box.innerHTML = `<div class="loc-hint">No matching places.</div>`; return; }
+  box.innerHTML = "";
+  for (const f of feats) {
+    const p = f.properties, c = f.geometry && f.geometry.coordinates; // [lon, lat]
+    const { main, sub } = placeLabel(p);
+    if (!main) continue;
+    const row = document.createElement("button");
+    row.className = "loc-res";
+    row.innerHTML = `<svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>
+      <span><b>${esc(main)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</span>`;
+    row.addEventListener("click", () => selectLocation(main, c && c[1], c && c[0]));
+    box.appendChild(row);
+  }
+}
+// Apply a chosen place: set area + coords, recompute distances, re-filter.
+function selectLocation(name, lat, lng) {
+  selectedArea = name;
+  userArea = name;
+  if (lat != null && lng != null) {
+    userPos = { lat, lng };
+    allSalons = allSalons.map((s) => ({
+      ...s,
+      dist: s.latitude && s.longitude ? distanceKm(lat, lng, s.latitude, s.longitude) : null,
     }));
+  }
+  $("locLabel").textContent = name;
+  closeLoc();
+  renderSalons();
 }
 
 $("searchInput").addEventListener("input", renderSalons);
@@ -432,7 +433,7 @@ function buildReelSlide(r) {
   const slide = document.createElement("div"); slide.className = "rv-slide";
 
   const top = document.createElement("div"); top.className = "rv-topbar";
-  top.innerHTML = `<img class="rv-logo" src="/favicon-192.png?v=3" alt="Salonn" width="30" height="30"><div class="rv-brand"><b>Salonn</b><small>Hairstyle &amp; Grooming</small></div>`;
+  top.innerHTML = `<img class="rv-logo" src="/icon-192.png?v=4" alt="Salonn" width="30" height="30"><div class="rv-brand"><b>Salonn</b><small>Hairstyle &amp; Grooming</small></div>`;
 
   const media = document.createElement("div"); media.className = "rv-media";
   const dots = document.createElement("div"); dots.className = "rv-dots";
@@ -672,7 +673,7 @@ async function rateTrend(t, stars) {
   toast("Thanks for rating!");
 }
 function renderTrendSalon(t) {
-  const list = (typeof salonInArea === "function") ? allSalons.filter(salonInArea) : allSalons;
+  const list = (typeof salonInScope === "function") ? allSalons.filter(salonInScope) : allSalons;
   const s = list[0] || allSalons[0];
   const el = $("tvSalon");
   if (!s) { el.innerHTML = ""; return; }

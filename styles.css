@@ -72,8 +72,8 @@ input,button{font-family:inherit}
   animation:spOut .5s ease 2.1s forwards}
 .splash.hide{display:none!important}
 .sp-center{display:flex;flex-direction:column;align-items:center}
-.sp-logo{width:104px;height:104px;border-radius:30px;background:var(--ink);color:var(--gold);
-  display:grid;place-items:center;font-family:'Space Grotesk';font-weight:700;font-size:62px;letter-spacing:-2px;
+.sp-logo{width:104px;height:104px;border-radius:30px;color:transparent;font-size:0;overflow:hidden;
+  background:#ffd60a url(/icon-192.png?v=4) center/cover no-repeat;
   box-shadow:0 14px 30px rgba(0,0,0,.28);animation:spPop .6s cubic-bezier(.34,1.56,.64,1) both}
 .sp-word{display:flex;margin-top:28px;font-family:'Space Grotesk';font-weight:700;font-size:52px;
   letter-spacing:-1.5px;color:var(--ink)}
@@ -325,19 +325,26 @@ input,button{font-family:inherit}
 .link{background:none;border:none;color:var(--gold-ink);font-weight:700;cursor:pointer;font-size:14px}
 #googleBtn{margin-top:10px}
 
-/* ── Location picker sheet ── */
+/* ── Location search modal ── */
 .loc-title{font-size:20px;text-align:left;margin-bottom:14px}
-.loc-current{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;
-  background:var(--gold);color:var(--ink);border:none;border-radius:13px;padding:13px;
-  font-weight:700;font-size:15px;cursor:pointer}
+.loc-search{display:flex;align-items:center;gap:9px;background:var(--surface-2);
+  border:1px solid var(--border-strong);border-radius:13px;padding:0 14px;margin-bottom:12px}
+.loc-search svg{color:var(--muted-2);flex:none}
+.loc-search input{flex:1;background:none;border:none;color:var(--text);font-size:15px;padding:14px 0}
+.loc-search input:focus{outline:none}
+.loc-current{display:flex;align-items:center;gap:9px;width:100%;
+  background:none;border:none;color:var(--gold-ink);padding:6px 2px;
+  font-weight:700;font-size:14.5px;cursor:pointer;text-align:left}
 .loc-current svg{flex:none}
-.loc-sec-t{text-align:left;font-size:12.5px;font-weight:700;color:var(--muted-2);
-  text-transform:uppercase;letter-spacing:.04em;margin:18px 0 9px}
-.loc-chips{display:flex;flex-wrap:wrap;gap:9px}
-.loc-chip{background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text);
-  border-radius:999px;padding:9px 15px;font-size:14px;font-weight:600;cursor:pointer}
-.loc-chip.on{background:var(--gold);border-color:var(--gold);color:var(--ink)}
-.loc-note{text-align:left;margin-top:10px}
+.loc-results{margin-top:6px;max-height:46vh;overflow-y:auto;text-align:left}
+.loc-res{display:flex;align-items:flex-start;gap:11px;width:100%;background:none;border:none;
+  border-top:1px solid var(--border);padding:13px 4px;cursor:pointer;text-align:left;color:var(--text)}
+.loc-res:hover{background:var(--surface-2)}
+.loc-res svg{color:var(--muted-2);flex:none;margin-top:2px}
+.loc-res span{display:flex;flex-direction:column;line-height:1.3;min-width:0}
+.loc-res b{font-size:15px;font-weight:700}
+.loc-res small{font-size:12.5px;color:var(--muted-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.loc-hint{padding:14px 4px;color:var(--muted-2);font-size:13.5px}
 
 /* ── Toast ── */
 .toast{position:fixed;left:50%;bottom:calc(var(--tabh) + 18px);transform:translateX(-50%);z-index:60;
@@ -574,10 +581,11 @@ input,button{font-family:inherit}
 html,body{overflow:hidden} /* the app's own .scroll areas handle scrolling */
 
 /* ── Brand mark base + nav logo ── */
-.brand-mark{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
-  background:linear-gradient(140deg,var(--gold),var(--gold-dim));color:var(--ink);
-  font-family:'Space Grotesk';font-weight:700;font-size:18px}
-.brand-mark.small{width:28px;height:28px;font-size:15px;border-radius:8px}
+/* Real Salonn app logo (black tile + gold S on yellow) instead of a CSS letter */
+.brand-mark{width:34px;height:34px;border-radius:10px;flex:none;
+  background:#ffd60a url(/icon-192.png?v=4) center/cover no-repeat;
+  color:transparent;font-size:0;overflow:hidden}
+.brand-mark.small{width:28px;height:28px;border-radius:8px}
 .tb-brand{display:none;align-items:center;gap:9px;color:var(--text);
   font-family:'Space Grotesk';font-weight:700;font-size:19px;text-decoration:none}
 @media(min-width:820px){ .tb-brand{display:flex;margin-right:auto;padding-left:4px} }
