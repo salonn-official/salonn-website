@@ -52,6 +52,17 @@ const CAT_TOKENS = {
   Facial: ["skin", "facial", "face", "clean"],
   Colour: ["colour", "color", "dye", "highlight"],
   Spa: ["spa", "massage", "massaga"],
+  "Hair Spa": ["spa"],
+  Threading: ["thread", "eyebrow", "brow"],
+  Waxing: ["wax"],
+  Makeup: ["makeup", "make up", "make-up", "bridal"],
+  Manicure: ["manicure", "nail"],
+  Pedicure: ["pedicure"],
+};
+// Shown until service_categories has rows for that section.
+const FALLBACK_CATS = {
+  men: ["Haircut", "Beard", "Facial", "Colour", "Spa"],
+  women: ["Haircut", "Hair Spa", "Facial", "Colour", "Threading", "Waxing", "Makeup"],
 };
 
 /* ── Toast ── */
@@ -343,41 +354,75 @@ function selectLocation(name, lat, lng) {
 }
 
 /* ── Men / Women section switch ── */
+// The same switch appears on Home and Explore; both stay in sync.
 function syncGenderSeg() {
-  document.querySelectorAll("#genderSeg button").forEach((b) => {
+  document.querySelectorAll(".gender-seg").forEach((seg) => seg.classList.toggle("women", gender === "women"));
+  document.querySelectorAll(".gender-seg button").forEach((b) => {
     const on = b.dataset.g === gender;
     b.classList.toggle("on", on);
     b.setAttribute("aria-selected", on);
   });
 }
+// Slide the refreshed content in from the side that was tapped.
+function playSwap(ids) {
+  const cls = gender === "women" ? "swap-r" : "swap-l";
+  for (const id of ids) {
+    const el = $(id);
+    if (!el) continue;
+    el.classList.remove("swap-l", "swap-r");
+    void el.offsetWidth; // restart the animation
+    el.classList.add(cls);
+  }
+}
 function setGender(g) {
   if (g === gender) return;
   gender = g;
   try { localStorage.setItem("salonn_gender", g); } catch (_) {}
+  try { navigator.vibrate && navigator.vibrate(12); } catch (_) {} // light tap on Android
   syncGenderSeg();
+  renderCats();
   renderSalons();
   renderTrending();
+  if (reelsLoaded) renderReelGrid();
+  playSwap(["cats", "featured", "trending", "salonList", "reelGrid"]);
 }
-document.querySelectorAll("#genderSeg button").forEach((b) => b.addEventListener("click", () => setGender(b.dataset.g)));
+document.querySelectorAll(".gender-seg button").forEach((b) => b.addEventListener("click", () => setGender(b.dataset.g)));
 syncGenderSeg();
 
 $("searchInput").addEventListener("input", renderSalons);
 
-/* categories */
-const CATS = ["All", "Haircut", "Beard", "Facial", "Colour", "Spa"];
-$("cats").innerHTML = CATS.map((c, i) => `<button class="chip ${i === 0 ? "active" : ""}" data-cat="${c}">${c}</button>`).join("");
-$("cats").querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => {
-  activeCat = b.dataset.cat;
-  $("cats").querySelectorAll(".chip").forEach((x) => x.classList.toggle("active", x === b));
-  renderSalons();
-}));
+/* categories — from service_categories (target men / women / unisex) */
+let dbCats = [];
+function catsForGender() {
+  const names = dbCats.filter((c) => c.target === gender || c.target === "unisex").map((c) => c.name);
+  return ["All", ...new Set(names.length ? names : FALLBACK_CATS[gender])];
+}
+function renderCats() {
+  const cats = catsForGender();
+  if (!cats.includes(activeCat)) activeCat = "All";
+  $("cats").innerHTML = cats.map((c) =>
+    `<button class="chip ${c === activeCat ? "active" : ""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("");
+  $("cats").querySelectorAll(".chip").forEach((b) => b.addEventListener("click", () => {
+    activeCat = b.dataset.cat;
+    $("cats").querySelectorAll(".chip").forEach((x) => x.classList.toggle("active", x === b));
+    renderSalons();
+  }));
+}
+async function loadCats() {
+  const { data } = await sb.from("service_categories").select("name,target,created_at").order("created_at");
+  dbCats = (data || []).filter((c) => c.name);
+  renderCats();
+  if (allSalons.length) renderSalons();
+}
+renderCats();
+loadCats();
 
 /* ── Explore / reels ── */
 let allReels = [];
 async function loadReels() {
   const g = $("reelGrid");
   const { data, error } = await sb.from("reels")
-    .select("id,salon_id,media_type,image_urls,video_url,caption,like_count,views,salon:salons(name,image_url,status,area,city,rating,latitude,longitude,address)")
+    .select("id,salon_id,media_type,image_urls,video_url,caption,like_count,views,salon:salons(name,image_url,status,area,city,rating,latitude,longitude,address,salon_type)")
     .order("created_at", { ascending: false }).limit(60);
   if (error || !data) { g.innerHTML = `<div class="empty">Couldn't load reels.</div>`; return; }
   allReels = data.filter((r) => r.salon && r.salon.status === "approved");
@@ -399,17 +444,34 @@ function reelThumb(r) {
 }
 // Explore grid — when searching we also surface matching SALONS (openable), so
 // a salon with no post can still be found; otherwise it's the posts grid.
+// Posts from salons in the selected Men / Women section.
+const reelsForGender = () => allReels.filter((r) => salonForGender(r.salon));
+// Nothing posted yet for this section → invite them to book instead.
+function exploreEmpty() {
+  return `<div class="ex-empty">
+    <div class="ex-empty-ico"><svg viewBox="0 0 24 24" width="40" height="40" fill="currentColor"><path d="M9.6 6.6a3 3 0 1 0-2.2 2.2l2.5 2.5-2.5 2.5a3 3 0 1 0 2.2 2.2L12 13.5l7.3 7.3 1.4-1.4L9.6 8.8ZM6.5 8A1.5 1.5 0 1 1 8 6.5 1.5 1.5 0 0 1 6.5 8Zm0 11A1.5 1.5 0 1 1 8 17.5 1.5 1.5 0 0 1 6.5 19Zm7.3-7.6 1.4 1.4 5.5-5.5-1.4-1.4Z"/></svg></div>
+    <h3>The best ${gender === "women" ? "looks" : "haircuts"} will show here</h3>
+    <p>No ${gender === "women" ? "women's" : "men's"} salon has posted yet. Take your ${gender === "women" ? "look" : "haircut"} today — a fresh style is just a booking away.</p>
+    <button class="ex-empty-btn" id="exBook">Book a salon</button>
+  </div>`;
+}
 function renderReelGrid() {
   const g = $("reelGrid");
   const q = ($("reelSearch")?.value || "").trim().toLowerCase();
+  const pool = reelsForGender();
   if (!q) {
     g.className = "reel-grid";
-    if (!allReels.length) { g.innerHTML = `<div class="empty">No reels yet.</div>`; return; }
-    g.innerHTML = ""; for (const r of allReels) g.appendChild(reelThumb(r));
+    if (!pool.length) {
+      g.className = "";
+      g.innerHTML = exploreEmpty();
+      $("exBook").addEventListener("click", () => show("home"));
+      return;
+    }
+    g.innerHTML = ""; for (const r of pool) g.appendChild(reelThumb(r));
     return;
   }
-  const salons = allSalons.filter((s) => `${s.name} ${s.area} ${s.city}`.toLowerCase().includes(q));
-  const reels = allReels.filter((r) => (r.salon?.name || "").toLowerCase().includes(q) || (r.caption || "").toLowerCase().includes(q));
+  const salons = allSalons.filter((s) => salonForGender(s) && `${s.name} ${s.area} ${s.city}`.toLowerCase().includes(q));
+  const reels = pool.filter((r) => (r.salon?.name || "").toLowerCase().includes(q) || (r.caption || "").toLowerCase().includes(q));
   g.className = "ex-results";
   if (!salons.length && !reels.length) { g.innerHTML = `<div class="empty">No salons match “${esc(q)}”.</div>`; return; }
   g.innerHTML = "";
@@ -441,7 +503,10 @@ let reelIO = null, likedReels = new Set();
 async function openReel(startReel) {
   const feed = $("rvFeed");
   feed.innerHTML = "";
-  const list = allReels.length ? allReels : [startReel];
+  // Swipe through this section's posts; a post opened from elsewhere (shared
+  // link, salon page) still opens even if it's from the other section.
+  const pool = reelsForGender();
+  const list = pool.some((x) => x.id === startReel.id) ? pool : [startReel];
   const startIdx = Math.max(0, list.findIndex((x) => x.id === startReel.id));
   likedReels = new Set();
   if (session) {

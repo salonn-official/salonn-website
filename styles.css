@@ -326,11 +326,36 @@ input,button{font-family:inherit}
 #googleBtn{margin-top:10px}
 
 /* ── Men / Women section switch ── */
-.gender-seg{display:flex;gap:4px;background:var(--surface-2);border:1px solid var(--border);
-  border-radius:14px;padding:4px;margin:2px 0 14px}
+.gender-seg{position:relative;display:flex;gap:4px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:14px;padding:4px;margin:2px 0 14px;isolation:isolate}
+/* Gold pill that slides (with a little overshoot) to the selected side */
+.gender-seg::before{content:"";position:absolute;z-index:-1;top:4px;bottom:4px;left:4px;width:calc(50% - 6px);
+  background:var(--gold);border-radius:10px;box-shadow:0 4px 12px rgba(255,215,0,.35);
+  transition:transform .38s cubic-bezier(.34,1.45,.64,1)}
+.gender-seg.women::before{transform:translateX(calc(100% + 4px))}
 .gender-seg button{flex:1;border:none;background:none;color:var(--muted);font-weight:700;
-  font-size:14.5px;padding:10px;border-radius:10px;cursor:pointer;font-family:inherit}
-.gender-seg button.on{background:var(--gold);color:var(--ink)}
+  font-size:14.5px;padding:10px;border-radius:10px;cursor:pointer;font-family:inherit;
+  transition:color .25s ease,transform .12s ease;-webkit-tap-highlight-color:transparent}
+.gender-seg button.on{color:var(--ink)}
+.gender-seg button:active{transform:scale(.94)}
+
+/* Content slides in from the side that was tapped */
+.swap-l{animation:swapL .34s cubic-bezier(.2,.8,.2,1)}
+.swap-r{animation:swapR .34s cubic-bezier(.2,.8,.2,1)}
+@keyframes swapL{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
+@keyframes swapR{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  .gender-seg::before{transition:none}.swap-l,.swap-r{animation:none}
+}
+
+/* Explore: nothing posted yet for this section */
+.ex-empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:56px 22px 30px}
+.ex-empty-ico{width:84px;height:84px;border-radius:24px;display:grid;place-items:center;margin-bottom:18px;
+  background:var(--surface-2);border:1px solid var(--border);color:var(--gold-ink)}
+.ex-empty h3{font-size:21px;letter-spacing:-.4px}
+.ex-empty p{margin:8px 0 20px;max-width:300px;font-size:14px;line-height:1.55;color:var(--muted)}
+.ex-empty-btn{background:var(--gold);color:var(--ink);border:none;border-radius:999px;padding:13px 26px;
+  font-weight:700;font-size:14.5px;cursor:pointer;font-family:inherit}
 
 /* ── Location search modal ── */
 .loc-title{font-size:20px;text-align:left;margin-bottom:14px}
