@@ -325,6 +325,13 @@ input,button{font-family:inherit}
 .link{background:none;border:none;color:var(--gold-ink);font-weight:700;cursor:pointer;font-size:14px}
 #googleBtn{margin-top:10px}
 
+/* ── Men / Women section switch ── */
+.gender-seg{display:flex;gap:4px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:14px;padding:4px;margin:2px 0 14px}
+.gender-seg button{flex:1;border:none;background:none;color:var(--muted);font-weight:700;
+  font-size:14.5px;padding:10px;border-radius:10px;cursor:pointer;font-family:inherit}
+.gender-seg button.on{background:var(--gold);color:var(--ink)}
+
 /* ── Location search modal ── */
 .loc-title{font-size:20px;text-align:left;margin-bottom:14px}
 .loc-search{display:flex;align-items:center;gap:9px;background:var(--surface-2);
@@ -556,6 +563,7 @@ input,button{font-family:inherit}
     max-width:1000px;margin-left:auto;margin-right:auto;padding-left:12px;padding-right:12px}
   .app-head{padding-top:22px;padding-bottom:6px}
   .app-head.simple{max-width:1000px}
+  .gender-seg{max-width:976px;margin-left:auto;margin-right:auto}
 
   /* Salon list → responsive multi-column grid */
   .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}

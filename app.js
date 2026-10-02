@@ -30,6 +30,19 @@ let activeCat = "All", selectedServices = [], userArea = null, salonCats = {}, u
 // The area the salon list is filtered to. Defaults to the GPS-resolved area,
 // and can be changed from the location search modal (type a city / use GPS).
 let selectedArea = null;
+// Men / Women section (remembered per browser).
+let gender = "men";
+try { if (localStorage.getItem("salonn_gender") === "women") gender = "women"; } catch (_) {}
+// salons.salon_type: male | female | unisex. trending_items.target: men | women | unisex.
+// An empty value counts as Men until it's filled in (all current data is men's).
+function salonForGender(s) {
+  const t = (s.salon_type || "male").toLowerCase();
+  return t === "unisex" || t === (gender === "men" ? "male" : "female");
+}
+function trendForGender(t) {
+  const g = (t.target || "men").toLowerCase();
+  return g === "unisex" || g === gender;
+}
 
 // Category chip → the words that identify it in a salon's service list.
 // (DB categories are Hair/Skin/… so we match by keyword, not exact label.)
@@ -137,7 +150,7 @@ async function loadSalons() {
   $("salonList").innerHTML = `<div class="empty">Loading salons…</div>`;
   // Salons + their service categories + popularity signal, in parallel.
   const [salonsRes, svcRes, actRes] = await Promise.all([
-    sb.from("salons").select("id,name,area,city,rating,image_url,latitude,longitude,address").eq("status", "approved"),
+    sb.from("salons").select("id,name,area,city,rating,image_url,latitude,longitude,address,salon_type").eq("status", "approved"),
     sb.from("services").select("salon_id,category,name").eq("active", true),
     sb.rpc("salon_activity"),
   ]);
@@ -192,7 +205,7 @@ function renderSalons() {
   const base = allSalons.filter((s) => {
     const hay = `${s.name} ${s.area} ${s.city}`.toLowerCase();
     const matchesSearch = !q || hay.includes(q) || (salonCats[s.id] || []).some((x) => x.includes(q));
-    return matchesSearch && salonHasCat(s, activeCat);
+    return matchesSearch && salonHasCat(s, activeCat) && salonForGender(s);
   });
   // Salons that serve the chosen area.
   let list = base.filter(salonInScope);
@@ -201,9 +214,9 @@ function renderSalons() {
   // Keep the location button in sync with the chosen area.
   $("locLabel").textContent = locLabelText();
 
-  // Area known, salons exist elsewhere, but none in the chosen area → "expanding".
+  // No salon for this section (Men/Women) in the chosen area → "expanding".
   const scopeArea = selectedArea || userArea;
-  if (!filtering && scopeArea && allSalons.length && !list.length) {
+  if (!filtering && allSalons.length && !list.length) {
     feat.innerHTML = ""; $("count").textContent = "";
     el.innerHTML = expandingState(scopeArea);
     const pick = $("expPick"); if (pick) pick.addEventListener("click", openLocSheet);
@@ -238,7 +251,7 @@ function expandingState(area) {
   return `<div class="expanding">
     <div class="exp-ico"><svg viewBox="0 0 24 24" width="46" height="46" fill="currentColor"><path d="M13.5 2.6c2.6 1 4.6 3 5.6 5.6.8 2.2.7 4.2.2 6-.3 1-.8 2-1.5 3l1.4 3.3-3.2-1a9 9 0 0 1-3 1.2 9.4 9.4 0 0 1-2.7-.1L7 22.1l-.5-3.3a9 9 0 0 1-2.3-2.2C2.3 13.9 2 10.5 3.4 7.6a9.4 9.4 0 0 1 10.1-5ZM12 7a2.4 2.4 0 1 0 0 4.8A2.4 2.4 0 0 0 12 7Z"/></svg></div>
     <h3 class="exp-title">We're expanding!</h3>
-    <p class="exp-sub">Salonn isn't in <b>${esc(area)}</b> yet. We're growing fast and will reach your area very soon.</p>
+    <p class="exp-sub">${gender === "women" ? "Women's salons aren't" : "Salonn isn't"} in <b>${esc(area || "your area")}</b> yet. We're growing fast and will reach your area very soon.</p>
     <button class="exp-btn" id="expPick">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>
       Choose another area
@@ -328,6 +341,25 @@ function selectLocation(name, lat, lng) {
   closeLoc();
   renderSalons();
 }
+
+/* ── Men / Women section switch ── */
+function syncGenderSeg() {
+  document.querySelectorAll("#genderSeg button").forEach((b) => {
+    const on = b.dataset.g === gender;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-selected", on);
+  });
+}
+function setGender(g) {
+  if (g === gender) return;
+  gender = g;
+  try { localStorage.setItem("salonn_gender", g); } catch (_) {}
+  syncGenderSeg();
+  renderSalons();
+  renderTrending();
+}
+document.querySelectorAll("#genderSeg button").forEach((b) => b.addEventListener("click", () => setGender(b.dataset.g)));
+syncGenderSeg();
 
 $("searchInput").addEventListener("input", renderSalons);
 
@@ -588,7 +620,7 @@ $("rvClose").addEventListener("click", closeReel);
 let allTrending = [];
 async function loadTrending() {
   const { data } = await sb.from("trending_items")
-    .select("id,media_type,media_urls,video_url,rating_sum,rating_count,category:trending_categories(name,sort_order)")
+    .select("id,media_type,media_urls,video_url,rating_sum,rating_count,target,category:trending_categories(name,sort_order)")
     .eq("active", true);
   allTrending = (data || []).sort((a, b) => (a.category?.sort_order || 0) - (b.category?.sort_order || 0));
   renderTrending();
@@ -609,10 +641,11 @@ function starIcons(t) {
 }
 function renderTrending() {
   const el = $("trending");
-  if (!allTrending.length) { el.innerHTML = ""; return; }
+  const items = allTrending.filter(trendForGender);
+  if (!items.length) { el.innerHTML = ""; return; } // nothing for this section → hide it
   el.innerHTML = `<div class="sec-head"><h2>Trending</h2></div><div class="trend-grid"></div>`;
   const grid = el.querySelector(".trend-grid");
-  for (const t of allTrending) {
+  for (const t of items) {
     const card = document.createElement("div");
     card.className = "trend-card";
     card.innerHTML = `<div class="trend-media">${trendThumb(t)}<div class="trend-stars">${starIcons(t)}</div></div>
@@ -673,8 +706,8 @@ async function rateTrend(t, stars) {
   toast("Thanks for rating!");
 }
 function renderTrendSalon(t) {
-  const list = (typeof salonInScope === "function") ? allSalons.filter(salonInScope) : allSalons;
-  const s = list[0] || allSalons[0];
+  const list = allSalons.filter((s) => salonInScope(s) && salonForGender(s));
+  const s = list[0];
   const el = $("tvSalon");
   if (!s) { el.innerHTML = ""; return; }
   const logo = s.image_url ? `<img class="tv-slogo" src="${esc(s.image_url)}">` : `<span class="brand-mark small">S</span>`;
