@@ -326,6 +326,7 @@ input,button{font-family:inherit}
 #googleBtn{margin-top:10px}
 
 /* ── Men / Women section switch ── */
+.gender-seg[hidden]{display:none!important}
 .gender-seg{position:relative;display:flex;gap:4px;background:var(--surface-2);border:1px solid var(--border);
   border-radius:14px;padding:4px;margin:2px 0 14px;isolation:isolate}
 /* Gold pill that slides (with a little overshoot) to the selected side */

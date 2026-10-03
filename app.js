@@ -31,8 +31,14 @@ let activeCat = "All", selectedServices = [], userArea = null, salonCats = {}, u
 // and can be changed from the location search modal (type a city / use GPS).
 let selectedArea = null;
 // Men / Women section (remembered per browser).
+// Salonn is men-only for now: no Men/Women switch, only men's / unisex
+// salons, trends and categories. Flip to true to launch the Women section
+// (everything for it is already built).
+const WOMEN_ENABLED = false;
 let gender = "men";
-try { if (localStorage.getItem("salonn_gender") === "women") gender = "women"; } catch (_) {}
+if (WOMEN_ENABLED) {
+  try { if (localStorage.getItem("salonn_gender") === "women") gender = "women"; } catch (_) {}
+}
 // salons.salon_type: male | female | unisex. trending_items.target: men | women | unisex.
 // An empty value counts as Men until it's filled in (all current data is men's).
 function salonForGender(s) {
@@ -375,7 +381,7 @@ function playSwap(ids) {
   }
 }
 function setGender(g) {
-  if (g === gender) return;
+  if (!WOMEN_ENABLED || g === gender) return;
   gender = g;
   try { localStorage.setItem("salonn_gender", g); } catch (_) {}
   try { navigator.vibrate && navigator.vibrate(12); } catch (_) {} // light tap on Android
@@ -387,6 +393,8 @@ function setGender(g) {
   playSwap(["cats", "featured", "trending", "salonList", "reelGrid"]);
 }
 document.querySelectorAll(".gender-seg button").forEach((b) => b.addEventListener("click", () => setGender(b.dataset.g)));
+// The switches ship hidden; only show them once the Women section exists.
+if (WOMEN_ENABLED) document.querySelectorAll(".gender-seg").forEach((seg) => { seg.hidden = false; });
 syncGenderSeg();
 
 $("searchInput").addEventListener("input", renderSalons);

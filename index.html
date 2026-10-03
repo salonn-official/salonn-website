@@ -80,7 +80,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=53" />
+  <link rel="stylesheet" href="/styles.css?v=54" />
 </head>
 <body>
   <!-- Splash screen (matches the Salonn app: gold ground, dark tile + wordmark) -->
@@ -122,7 +122,7 @@
 
       <div class="scroll">
         <h1 class="sr-only">Salonn — Book salons and barbershops near you</h1>
-        <div class="gender-seg" id="genderSeg" role="tablist" aria-label="Section">
+        <div class="gender-seg" id="genderSeg" role="tablist" aria-label="Section" hidden>
           <button data-g="men" role="tab">Men</button>
           <button data-g="women" role="tab">Women</button>
         </div>
@@ -149,7 +149,7 @@
     <section class="screen" id="screen-explore" hidden>
       <header class="app-head simple"><h1>Explore</h1></header>
       <div class="scroll">
-        <div class="gender-seg" role="tablist" aria-label="Section">
+        <div class="gender-seg" role="tablist" aria-label="Section" hidden>
           <button data-g="men" role="tab">Men</button>
           <button data-g="women" role="tab">Women</button>
         </div>
@@ -260,7 +260,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  <script src="/app.js?v=53"></script>
+  <script src="/app.js?v=54"></script>
 
   <!-- Vercel Web Analytics (visitor + page-view counts) — static-site snippet -->
   <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
